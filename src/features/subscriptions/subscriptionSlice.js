@@ -20,9 +20,8 @@ const subscriptionSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchPlans.fulfilled, (s, a) => { s.plans = a.payload; })
-      .addCase(fetchSubscription.fulfilled, (s, a) => { s.current = a.payload; })
       .addCase(fetchSubscription.pending, (s) => { s.isLoading = true; })
-      .addCase(fetchSubscription.fulfilled, (s) => { s.isLoading = false; })
+      .addCase(fetchSubscription.fulfilled, (s, a) => { s.isLoading = false; s.current = a.payload; })
       .addCase(fetchSubscription.rejected, (s, a) => { s.isLoading = false; s.error = a.payload; })
       .addCase(subscribe.fulfilled, (s, a) => { s.current = a.payload; });
   },
