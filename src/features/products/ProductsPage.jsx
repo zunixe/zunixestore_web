@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts, deleteProduct } from './productsSlice';
@@ -11,6 +11,8 @@ export default function ProductsPage() {
   const { items, total, isLoading } = useSelector((s) => s.products);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const fileRef = useRef(null);
 
   useEffect(() => {
     if (currentStore) dispatch(fetchProducts({ storeId: currentStore.id, params: { search, page, limit: 10 } }));
@@ -29,10 +31,41 @@ export default function ProductsPage() {
           <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" /></svg>
           <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Cari berdasarkan nama atau SKU..." className="bg-transparent border-none outline-none flex-1 text-sm text-gray-700" />
         </div>
-        <button onClick={() => navigate('/products/add')} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+        <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
           + Tambah Produk
         </button>
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-[400px] p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900 mb-5">Tambah Produk Baru</h3>
+            <div className="space-y-3">
+              <div onClick={() => { setShowModal(false); navigate('/products/add'); }} className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-2 5h-2v2H7v-2H5v-2h2V9h2v2h2v2z"/></svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">Tambah Manual</p>
+                  <p className="text-xs text-gray-500">Input data produk satu per satu secara manual</p>
+                </div>
+                <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+              </div>
+              <div onClick={() => fileRef.current?.click()} className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 7V3.5L18.5 9H13zm-2 7l-2-3h2V9h2v4h2l-2 3v3h-2v-3z"/></svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">Upload dari Excel</p>
+                  <p className="text-xs text-gray-500">Import produk menggunakan file Excel</p>
+                </div>
+                <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+              </div>
+            </div>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" />
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm">
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
