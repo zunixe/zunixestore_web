@@ -24,11 +24,11 @@ export const deleteProduct = createAsyncThunk('products/delete', async ({ storeI
 
 const productsSlice = createSlice({
   name: 'products',
-  initialState: { items: [], total: 0, page: 1, isLoading: false, error: null },
+  initialState: { items: [], total: 0, total_all: 0, page: 1, isLoading: false, error: null },
   extraReducers: (builder) => {
     builder
       .addCase(fetchProducts.pending, (s) => { s.isLoading = true; })
-      .addCase(fetchProducts.fulfilled, (s, a) => { s.isLoading = false; s.items = a.payload.items; s.total = a.payload.total; s.page = a.payload.page; })
+      .addCase(fetchProducts.fulfilled, (s, a) => { s.isLoading = false; s.items = a.payload.items; s.total = a.payload.total; s.total_all = a.payload.total_all ?? s.total_all; s.page = a.payload.page; })
       .addCase(fetchProducts.rejected, (s, a) => { s.isLoading = false; s.error = a.payload; })
       .addCase(createProduct.fulfilled, (s, a) => { s.items.unshift(a.payload); s.total++; })
       .addCase(updateProduct.fulfilled, (s, a) => { const idx = s.items.findIndex(p => p.id === a.payload.id); if (idx !== -1) s.items[idx] = a.payload; })
