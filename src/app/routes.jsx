@@ -33,6 +33,16 @@ import ProductBundlesPage from '../features/product-bundles/ProductBundlesPage';
 import FeaturedProductsPage from '../features/featured-products/FeaturedProductsPage';
 import ProductPreferencesPage from '../features/product-preferences/ProductPreferencesPage';
 import BalancePage from '../features/balance/BalancePage';
+import PlugoLinksPage from '../features/plugolinks/PlugoLinksPage';
+import DealPosPage from '../features/integrations/DealPosPage';
+import DestyPage from '../features/omnichannel/DestyPage';
+import GineePage from '../features/omnichannel/GineePage';
+import GoogleMerchantPage from '../features/google-merchant/GoogleMerchantPage';
+import JubelioPage from '../features/omnichannel/JubelioPage';
+import FacebookCatalogPage from '../features/facebook-catalog/FacebookCatalogPage';
+import MultiLanguagePage from '../features/multi-language/MultiLanguagePage';
+import WhatsappLandingPage from '../features/whatsapp-landing/WhatsappLandingPage';
+import WalletReportPage from '../features/wallet/WalletReportPage';
 
 export default function AppRoutes() {
   return (
@@ -79,6 +89,16 @@ export default function AppRoutes() {
           <Route path="/featured-products" element={<FeaturedProductsPage />} />
           <Route path="/preferences/products" element={<ProductPreferencesPage />} />
           <Route path="/my-balance" element={<BalancePage />} />
+          <Route path="/wallet/report" element={<WalletReportPage />} />
+          <Route path="/links" element={<PlugoLinksPage />} />
+          <Route path="/preferences/integrations" element={<DealPosPage />} />
+          <Route path="/omnichannel/desty" element={<DestyPage />} />
+          <Route path="/omnichannel/ginee" element={<GineePage />} />
+          <Route path="/google-merchant-center/setup" element={<GoogleMerchantPage />} />
+          <Route path="/omnichannel/jubelio" element={<JubelioPage />} />
+          <Route path="/facebook-catalog/setup" element={<FacebookCatalogPage />} />
+          <Route path="/apps/localizations/products" element={<MultiLanguagePage />} />
+          <Route path="/whatsapp-landing-pages" element={<WhatsappLandingPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
