@@ -17,52 +17,46 @@ export default function Topbar({ title, children }) {
   };
 
   return (
-    <header className="h-[69px] bg-white border-b border-gray-200 flex items-center px-4 gap-3 sticky top-0 z-50">
-      <div className="w-[180px] flex items-center gap-2">
-        <div className="h-7 rounded bg-blue-100 px-3 flex items-center">
+    <header className="h-[64px] bg-white border-b border-gray-200 flex items-center px-6 sticky top-0 z-50 relative">
+      <a href="/" className="flex items-center shrink-0">
+        <div className="h-8 rounded bg-blue-100 px-3 flex items-center">
           <span className="text-blue-600 font-bold text-sm">ZunixeStore</span>
         </div>
-      </div>
+      </a>
 
-      <div className="flex-1 max-w-[500px] flex items-center bg-gray-100 rounded-lg px-3 h-[42px] gap-2 cursor-pointer">
-        <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        <span className="text-gray-500 text-sm flex-1">Cari apa saja...</span>
-        <span className="text-gray-400 text-xs flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">Ctrl</kbd><kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-[11px]">J</kbd></span>
+      <div className="absolute left-1/2 -translate-x-1/2 max-w-[480px] w-full flex items-center bg-gray-100 rounded-[10px] px-4 h-[42px] gap-2 hover:bg-gray-200 transition-colors">
+        <svg className="w-[22px] h-[22px] text-gray-400 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input
+          type="text"
+          placeholder="Cari apa saja..."
+          className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-500 outline-none border-none"
+        />
+        <span className="flex items-center gap-0.5 text-gray-400 text-[13px] shrink-0">
+          <kbd className="px-[6px] py-0.5 bg-gray-200/80 rounded-[4px] font-sans">⌘</kbd>
+          <kbd className="px-[6px] py-0.5 bg-gray-200/80 rounded-[4px] font-sans">J</kbd>
+        </span>
       </div>
 
       <div className="flex items-center gap-1 ml-auto">
-        {stores.length > 0 && (
-          <select
-            value={currentStore?.id || ''}
-            onChange={(e) => {
-              const store = stores.find(s => s.id === e.target.value);
-              if (store) dispatch(setCurrentStore(store));
-            }}
-            className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 mr-2"
-          >
-            {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        )}
-
-        <button className="w-11 h-11 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500">
-          <svg className="w-8 h-8" viewBox="0 0 32 32" fill="currentColor"><path d="M16 3c-4.42 0-8 3.58-8 8v6l-2 2v1h20v-1l-2-2v-6c0-4.42-3.58-8-8-8zm-2 22h4a2 2 0 01-4 0z"/></svg>
+        <button className="w-[42px] h-[42px] rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-500">
+          <svg className="w-[26px] h-[26px]" viewBox="0 0 32 32" fill="currentColor"><path d="M16 3c-4.42 0-8 3.58-8 8v6l-2 2v1h20v-1l-2-2v-6c0-4.42-3.58-8-8-8zm-2 22h4a2 2 0 01-4 0z"/></svg>
         </button>
 
-        <button className="w-11 h-11 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500">
-          <svg className="w-8 h-8" viewBox="0 0 32 32" fill="currentColor"><path d="M16 4C9.373 4 4 9.373 4 16s5.373 12 12 12 12-5.373 12-12S22.627 4 16 4zm1 17.93V19h-2v2.93A8.002 8.002 0 019.07 15H12v-2H9.07A8.002 8.002 0 0115 9.07V12h2V9.07A8.002 8.002 0 0122.93 15H20v2h2.93A8.002 8.002 0 0117 21.93z"/></svg>
+        <button className="w-[42px] h-[42px] rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-500">
+          <svg className="w-[26px] h-[26px]" viewBox="0 0 32 32" fill="currentColor"><path d="M16 4C9.373 4 4 9.373 4 16s5.373 12 12 12 12-5.373 12-12S22.627 4 16 4zm1 17.93V19h-2v2.93A8.002 8.002 0 019.07 15H12v-2H9.07A8.002 8.002 0 0115 9.07V12h2V9.07A8.002 8.002 0 0122.93 15H20v2h2.93A8.002 8.002 0 0117 21.93z"/></svg>
         </button>
 
         <div className="relative">
           <div
-            className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 cursor-pointer h-[47px]"
+            className="flex items-center gap-2.5 px-3 py-1 rounded-xl hover:bg-gray-100 cursor-pointer h-[42px]"
             onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
           >
-            <svg className="w-5 h-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/></svg>
+            <svg className="w-[22px] h-[22px] text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/></svg>
             <div className="flex flex-col leading-tight">
               <span className="text-sm text-gray-900 font-medium">{user?.full_name || 'zunixe'}</span>
               <span className="text-xs text-gray-500">Basic</span>
             </div>
-            <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+            <svg className="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
           </div>
 
           {dropdownOpen && (
@@ -78,13 +72,29 @@ export default function Topbar({ title, children }) {
                 <p className="text-xs text-gray-500">Berlaku Sampai 05 Jul 2026, 16:24</p>
               </div>
               <div className="h-px bg-gray-100 mx-4"></div>
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4.5 h-4.5 text-gray-500" viewBox="0 0 16 16" fill="currentColor"><path d="M2.97 1.35A1 1 0 013.477 1h9.046a1 1 0 01.507.13l3.5 2a1 1 0 010 1.74l-3.5 2A1 1 0 0111.523 7H3.477a1 1 0 01-.507-.13l-3.5-2a1 1 0 010-1.74l3.5-2zM4 5.5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zM2 9.5a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5zM2 12.5a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5z"/></svg>
-                  <span className="text-sm font-medium text-gray-900 flex-1">{currentStore?.name || 'zunixe'}</span>
-                  <svg className="w-4.5 h-4.5 text-blue-500" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M12.416 3.376a.75.75 0 01.208 1.04l-5 7.5a.75.75 0 01-1.154.114l-3-3a.75.75 0 011.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 011.04-.207z"/></svg>
-                </div>
-                <a href="/stores/new" className="text-blue-600 text-sm font-medium">+ Tambah Toko</a>
+              <div className="p-4 space-y-1">
+                {stores.map((store) => (
+                  <div
+                    key={store.id}
+                    onClick={() => { dispatch(setCurrentStore(store)); setDropdownOpen(false); }}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm ${
+                      currentStore?.id === store.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <svg className="w-4.5 h-4.5 shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M2.97 1.35A1 1 0 013.477 1h9.046a1 1 0 01.507.13l3.5 2a1 1 0 010 1.74l-3.5 2A1 1 0 0111.523 7H3.477a1 1 0 01-.507-.13l-3.5-2a1 1 0 010-1.74l3.5-2zM4 5.5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zM2 9.5a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5zM2 12.5a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5z"/></svg>
+                    <span className="flex-1">{store.name}</span>
+                    {currentStore?.id === store.id && (
+                      <svg className="w-4.5 h-4.5 text-blue-500 shrink-0" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M12.416 3.376a.75.75 0 01.208 1.04l-5 7.5a.75.75 0 01-1.154.114l-3-3a.75.75 0 011.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 011.04-.207z"/></svg>
+                    )}
+                  </div>
+                ))}
+                <a
+                  href="/stores/new"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 font-medium hover:bg-gray-50 rounded-lg"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  + Tambah Toko
+                </a>
               </div>
               <div className="h-px bg-gray-100 mx-4"></div>
               <div className="p-4">
@@ -95,7 +105,7 @@ export default function Topbar({ title, children }) {
                     <p className="text-xs text-gray-500">{user?.email || 'zunixe@gmail.com'}</p>
                   </div>
                 </div>
-                <a href="/settings" className="flex items-center gap-2 py-2 text-sm text-gray-700 hover:text-gray-900">
+                <a href="/settings/admin" className="flex items-center gap-2 py-2 text-sm text-gray-700 hover:text-gray-900">
                   <svg className="w-4.5 h-4.5 text-gray-500" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 0a.5.5 0 01.5.5V3h5a.5.5 0 010 1h-5v3h5a.5.5 0 010 1h-5v2a.5.5 0 01-.5.5h-5a.5.5 0 010-1h4V7h-4a.5.5 0 010-1h4V1h-4a.5.5 0 010-1h5V.5a.5.5 0 01.5-.5z"/></svg>
                   Bahasa & Notifikasi Saya
                 </a>

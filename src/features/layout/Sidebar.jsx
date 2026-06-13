@@ -16,7 +16,7 @@ export default function Sidebar() {
   const location = useLocation();
 
   return (
-    <nav className="w-[280px] bg-[#f9fafb] min-h-screen fixed top-0 left-0 bottom-0 z-[100] flex flex-col border-r border-gray-200">
+    <nav className="w-[280px] bg-[#f9fafb] h-[calc(100vh-64px)] sticky top-[64px] shrink-0 flex flex-col border-r border-gray-200">
       <div className="p-4 border-b border-gray-200 space-y-1">
         <NavLink to="/my-balance" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm">
           <svg className="w-4 h-4 text-gray-500" viewBox="0 0 16 16" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/></svg>
@@ -24,14 +24,7 @@ export default function Sidebar() {
           <span className="font-semibold text-xs ml-auto">Rp 0</span>
           <svg className="w-4 h-4 text-gray-400" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M4.646 1.646a.5.5 0 01.708 0l6 6a.5.5 0 010 .708l-6 6a.5.5 0 01-.708-.708L10.293 8 4.646 2.354a.5.5 0 010-.708z"/></svg>
         </NavLink>
-        <NavLink to="/wallet-report" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm">
-          <svg className="w-4 h-4 text-gray-500" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10a2 2 0 100-4 2 2 0 000 4z"/></svg>
-          <div className="flex flex-col gap-0.5 flex-1">
-            <div className="flex items-center gap-1 text-xs"><span className="text-gray-500">ZunixeCoins</span><span className="font-semibold">2,884</span></div>
-            <div className="flex items-center gap-1 text-xs"><span className="text-gray-500">Poin</span><span className="font-semibold">0</span></div>
-          </div>
-          <svg className="w-4 h-4 text-gray-400" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M4.646 1.646a.5.5 0 01.708 0l6 6a.5.5 0 010 .708l-6 6a.5.5 0 01-.708-.708L10.293 8 4.646 2.354a.5.5 0 010-.708z"/></svg>
-        </NavLink>
+
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">

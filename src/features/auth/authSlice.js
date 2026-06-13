@@ -30,6 +30,15 @@ export const fetchMe = createAsyncThunk('auth/fetchMe', async (_, { rejectWithVa
   }
 });
 
+export const updateProfile = createAsyncThunk('auth/updateProfile', async (profileData, { rejectWithValue }) => {
+  try {
+    const res = await api.put('/auth/profile', profileData);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message);
+  }
+});
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
@@ -76,6 +85,15 @@ const authSlice = createSlice({
       })
       .addCase(fetchMe.fulfilled, (state, action) => {
         state.user = action.payload;
+      })
+      .addCase(updateProfile.pending, (state) => { state.isLoading = true; })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
       });
   },
 });

@@ -27,12 +27,14 @@ export default function Layout() {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#eff3f8]">
-      <Sidebar />
-      <div className="ml-[280px] flex flex-col min-h-screen flex-1">
-        <Topbar />
-        <div className="flex-1 p-6">
-          <Outlet />
+    <div className="min-h-screen bg-[#eff3f8]">
+      <Topbar />
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 flex justify-center p-6 min-h-[calc(100vh-64px)]">
+          <div className="w-full max-w-[1200px]">
+            <Outlet />
+          </div>
         </div>
       </div>
     </div>

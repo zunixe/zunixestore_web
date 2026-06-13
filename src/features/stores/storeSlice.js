@@ -15,7 +15,7 @@ export const createStore = createAsyncThunk('stores/createStore', async (storeDa
     const res = await api.post('/stores', storeData);
     return res.data;
   } catch (err) {
-    return rejectWithValue(err.message);
+    return rejectWithValue(err.response?.data?.message || err.message);
   }
 });
 
@@ -50,6 +50,8 @@ const storeSlice = createSlice({
       })
       .addCase(createStore.fulfilled, (state, action) => {
         state.stores.push(action.payload);
+        state.currentStore = action.payload;
+        localStorage.setItem('currentStore', JSON.stringify(action.payload));
       });
   },
 });
