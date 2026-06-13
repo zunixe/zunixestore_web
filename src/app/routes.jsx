@@ -27,6 +27,12 @@ import PoliciesPage from '../features/settings/PoliciesPage';
 import DeleteStorePage from '../features/settings/DeleteStorePage';
 import SubscriptionPage from '../features/subscriptions/SubscriptionPage';
 import StoreCreatePage from '../features/stores/StoreCreatePage';
+import InventoryPage from '../features/inventory/InventoryPage';
+import CategoriesPage from '../features/categories/CategoriesPage';
+import ProductBundlesPage from '../features/product-bundles/ProductBundlesPage';
+import FeaturedProductsPage from '../features/featured-products/FeaturedProductsPage';
+import ProductPreferencesPage from '../features/product-preferences/ProductPreferencesPage';
+import BalancePage from '../features/balance/BalancePage';
 
 export default function AppRoutes() {
   return (
@@ -65,6 +71,12 @@ export default function AppRoutes() {
           <Route path="/settings/delete-store" element={<DeleteStorePage />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/stores/new" element={<StoreCreatePage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/product-bundles" element={<ProductBundlesPage />} />
+          <Route path="/featured-products" element={<FeaturedProductsPage />} />
+          <Route path="/preferences/products" element={<ProductPreferencesPage />} />
+          <Route path="/my-balance" element={<BalancePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
