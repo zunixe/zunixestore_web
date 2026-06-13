@@ -143,6 +143,12 @@ export default function ProductEditPage() {
 
   return (
     <form onSubmit={handleSubmit}>
+      <div className="flex items-center gap-2 mb-4">
+        <a href="/products" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors" onClick={(e) => { e.preventDefault(); navigate('/products'); }}>
+          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+          Produk
+        </a>
+      </div>
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-lg font-semibold text-gray-900">Edit Produk</h2>
         <div className="flex items-center gap-2">

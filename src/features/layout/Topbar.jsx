@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../auth/authSlice';
 import { setCurrentStore } from '../stores/storeSlice';
 
-export default function Topbar({ title, children }) {
+export default function Topbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
@@ -16,31 +17,48 @@ export default function Topbar({ title, children }) {
     navigate('/login');
   };
 
+  useEffect(() => {
+    const handler = (e) => {
+      const dd = document.querySelector('.user-dropdown-open');
+      if (dd && !dd.contains(e.target)) setDropdownOpen(false);
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
+
   return (
-    <header className="h-[64px] bg-white border-b border-gray-200 flex items-center px-6 sticky top-0 z-50 relative">
-      <a href="/" className="flex items-center shrink-0">
-        <div className="h-8 rounded bg-blue-100 px-3 flex items-center">
+    <header className="h-[64px] bg-white border-b border-gray-200 flex items-center px-6 sticky top-0 z-50">
+      <a href="/" className="flex items-center shrink-0 mr-8">
+        <img src="https://admin.plugo.world/logo.svg" alt="ZunixeStore" className="h-8" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+        <div className="h-8 rounded bg-blue-100 px-3 hidden items-center">
           <span className="text-blue-600 font-bold text-sm">ZunixeStore</span>
         </div>
       </a>
 
-      <div className="absolute left-1/2 -translate-x-1/2 max-w-[480px] w-full flex items-center bg-gray-100 rounded-[10px] px-4 h-[42px] gap-2 hover:bg-gray-200 transition-colors">
-        <svg className="w-[22px] h-[22px] text-gray-400 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        <input
-          type="text"
-          placeholder="Cari apa saja..."
-          className="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-500 outline-none border-none"
-        />
-        <span className="flex items-center gap-0.5 text-gray-400 text-[13px] shrink-0">
-          <kbd className="px-[6px] py-0.5 bg-gray-200/80 rounded-[4px] font-sans">⌘</kbd>
-          <kbd className="px-[6px] py-0.5 bg-gray-200/80 rounded-[4px] font-sans">J</kbd>
-        </span>
+      {/* Toko / Umum Toggle */}
+      <div className="flex items-center gap-1 ml-4">
+        <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg font-medium">Toko</button>
+        <button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">Umum</button>
       </div>
 
       <div className="flex items-center gap-1 ml-auto">
-        <button className="w-[42px] h-[42px] rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-500">
-          <svg className="w-[26px] h-[26px]" viewBox="0 0 32 32" fill="currentColor"><path d="M16 3c-4.42 0-8 3.58-8 8v6l-2 2v1h20v-1l-2-2v-6c0-4.42-3.58-8-8-8zm-2 22h4a2 2 0 01-4 0z"/></svg>
-        </button>
+        {/* Notifications */}
+        <div className="relative">
+          <button onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); }} className="w-[42px] h-[42px] rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-500">
+            <svg className="w-[26px] h-[26px]" viewBox="0 0 32 32" fill="currentColor"><path d="M16 3c-4.42 0-8 3.58-8 8v6l-2 2v1h20v-1l-2-2v-6c0-4.42-3.58-8-8-8zm-2 22h4a2 2 0 01-4 0z"/></svg>
+          </button>
+          {notifOpen && (
+            <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-[200] p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-gray-900">Notifikasi</span>
+                <button onClick={() => setNotifOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+              </div>
+              <div className="text-center py-8 text-gray-400 text-sm">Belum ada notifikasi</div>
+            </div>
+          )}
+        </div>
 
         <button className="w-[42px] h-[42px] rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-500">
           <svg className="w-[26px] h-[26px]" viewBox="0 0 32 32" fill="currentColor"><path d="M16 4C9.373 4 4 9.373 4 16s5.373 12 12 12 12-5.373 12-12S22.627 4 16 4zm1 17.93V19h-2v2.93A8.002 8.002 0 019.07 15H12v-2H9.07A8.002 8.002 0 0115 9.07V12h2V9.07A8.002 8.002 0 0122.93 15H20v2h2.93A8.002 8.002 0 0117 21.93z"/></svg>
@@ -48,7 +66,7 @@ export default function Topbar({ title, children }) {
 
         <div className="relative">
           <div
-            className="flex items-center gap-2.5 px-3 py-1 rounded-xl hover:bg-gray-100 cursor-pointer h-[42px]"
+            className={`flex items-center gap-2.5 px-3 py-1 rounded-xl hover:bg-gray-100 cursor-pointer h-[42px] ${dropdownOpen ? 'user-dropdown-open' : ''}`}
             onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
           >
             <svg className="w-[22px] h-[22px] text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/></svg>
@@ -60,7 +78,7 @@ export default function Topbar({ title, children }) {
           </div>
 
           {dropdownOpen && (
-            <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-[200] overflow-hidden">
+            <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-[200] overflow-hidden" onClick={(e) => e.stopPropagation()}>
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-semibold">
@@ -101,7 +119,7 @@ export default function Topbar({ title, children }) {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 font-semibold text-sm">Z</div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{user?.full_name || 'Zaini Hafid'}</p>
+                    <p className="text-sm font-semibold text-gray-900">{user?.full_name || 'zunixe'}</p>
                     <p className="text-xs text-gray-500">{user?.email || 'zunixe@gmail.com'}</p>
                   </div>
                 </div>

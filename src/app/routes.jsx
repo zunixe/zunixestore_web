@@ -52,7 +52,9 @@ export default function AppRoutes() {
           <Route path="/products/add" element={<ProductAddPage />} />
           <Route path="/products/edit/:id" element={<ProductEditPage />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/buyers" element={<CustomersPage />} />
           <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/product-promotions" element={<DiscountsPage />} />
           <Route path="/discounts" element={<DiscountsPage />} />
           <Route path="/themes" element={<ThemePage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
