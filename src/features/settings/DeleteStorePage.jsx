@@ -1,8 +1,25 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import SettingsPageLayout from './SettingsPageLayout';
+import { deleteStore } from '../stores/storeSlice';
 
 export default function DeleteStorePage() {
   const [confirmText, setConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { currentStore } = useSelector((s) => s.stores);
+
+  const handleDelete = async () => {
+    if (confirmText !== 'HAPUS TOKO' || !currentStore) return;
+    setDeleting(true);
+    try {
+      await dispatch(deleteStore(currentStore.id)).unwrap();
+      navigate('/dashboard');
+    } catch {}
+    setDeleting(false);
+  };
 
   return (
     <SettingsPageLayout title="Hapus Toko" desc="Toko, produk, integrasi & langganan kamu akan terhapus.">
@@ -18,24 +35,13 @@ export default function DeleteStorePage() {
             <p className="text-xs text-red-500 mt-0.5">Semua data toko, produk, pesanan, dan pengaturan akan dihapus permanen.</p>
           </div>
         </div>
-
         <div className="h-px bg-red-50 mb-4" />
-
         <p className="text-xs text-gray-500 mb-2">
           Ketik <span className="font-semibold text-gray-700">HAPUS TOKO</span> untuk konfirmasi:
         </p>
-        <input
-          type="text"
-          value={confirmText}
-          onChange={(e) => setConfirmText(e.target.value)}
-          placeholder="HAPUS TOKO"
-          className="w-full px-3 py-2 border border-red-200 rounded-lg text-sm focus:outline-none focus:border-red-400 mb-4"
-        />
-        <button
-          disabled={confirmText !== 'HAPUS TOKO'}
-          className="w-full px-4 py-2.5 bg-red-600 text-white text-sm rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 transition-colors"
-        >
-          Hapus Toko Permanen
+        <input type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="HAPUS TOKO" className="w-full px-3 py-2 border border-red-200 rounded-lg text-sm focus:outline-none focus:border-red-400 mb-4" />
+        <button onClick={handleDelete} disabled={confirmText !== 'HAPUS TOKO' || deleting} className="w-full px-4 py-2.5 bg-red-600 text-white text-sm rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 transition-colors">
+          {deleting ? 'Menghapus...' : 'Hapus Toko Permanen'}
         </button>
       </div>
     </SettingsPageLayout>
