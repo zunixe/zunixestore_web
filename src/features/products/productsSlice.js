@@ -5,6 +5,10 @@ export const fetchProducts = createAsyncThunk('products/fetch', async ({ storeId
   try { const q = new URLSearchParams(params).toString(); const res = await api.get(`/stores/${storeId}/products?${q}`); return res.data; }
   catch (err) { return rejectWithValue(err.message); }
 });
+export const fetchProductById = createAsyncThunk('products/fetchById', async ({ storeId, productId }, { rejectWithValue }) => {
+  try { const res = await api.get(`/stores/${storeId}/products/${productId}`); return res.data; }
+  catch (err) { return rejectWithValue(err.message); }
+});
 export const createProduct = createAsyncThunk('products/create', async ({ storeId, data }, { rejectWithValue }) => {
   try { const res = await api.post(`/stores/${storeId}/products`, data); return res.data; }
   catch (err) { return rejectWithValue(err.message); }

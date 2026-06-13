@@ -7,6 +7,7 @@ import DashboardPage from '../features/dashboard/DashboardPage';
 import OrdersPage from '../features/orders/OrdersPage';
 import ProductsPage from '../features/products/ProductsPage';
 import ProductAddPage from '../features/products/ProductAddPage';
+import ProductEditPage from '../features/products/ProductEditPage';
 import CustomersPage from '../features/customers/CustomersPage';
 import DiscountsPage from '../features/discounts/DiscountsPage';
 import ThemePage from '../features/themes/ThemePage';
@@ -43,6 +44,7 @@ export default function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/products/add" element={<ProductAddPage />} />
+          <Route path="/products/edit/:id" element={<ProductEditPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/discounts" element={<DiscountsPage />} />
