@@ -16,9 +16,16 @@ const themesSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchThemes.pending, (s) => { s.isLoading = true; })
-      .addCase(fetchThemes.fulfilled, (s, a) => { s.isLoading = false; s.themes = a.payload.filter ? a.payload : []; s.activeTheme = a.payload.themes ? a.payload.themes.find(t => t.is_active) : a.payload; })
+      .addCase(fetchThemes.fulfilled, (s, a) => {
+        s.isLoading = false;
+        s.themes = Array.isArray(a.payload) ? a.payload : [];
+        s.activeTheme = s.themes.find(t => t.is_active) || s.themes[0] || null;
+      })
       .addCase(fetchThemes.rejected, (s, a) => { s.isLoading = false; s.error = a.payload; })
-      .addCase(activateTheme.fulfilled, (s, a) => { s.activeTheme = a.payload; });
+      .addCase(activateTheme.fulfilled, (s, a) => {
+        s.themes = s.themes.map(t => ({ ...t, is_active: t.id === a.payload?.id ? 1 : 0 }));
+        s.activeTheme = a.payload || null;
+      });
   },
 });
 export default themesSlice.reducer;
