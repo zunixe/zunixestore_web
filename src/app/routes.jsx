@@ -67,10 +67,12 @@ export default function AppRoutes() {
           <Route path="/product-promotions" element={<DiscountsPage />} />
           <Route path="/discounts" element={<DiscountsPage />} />
           <Route path="/themes" element={<ThemePage />} />
+          <Route path="/settings/themes" element={<ThemePage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/settings/admin" element={<AdminSettingsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/preferences" element={<SettingsPage />} />
           <Route path="/settings/payments" element={<PaymentsPage />} />
           <Route path="/settings/shipping" element={<ShippingPage />} />
           <Route path="/settings/locations" element={<LocationsPage />} />

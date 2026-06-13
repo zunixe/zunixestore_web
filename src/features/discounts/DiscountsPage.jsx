@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDiscounts, createDiscount, deleteDiscount } from './discountsSlice';
 import { formatCurrency } from '../../utils/formatters';
+import DropdownSelect from '../../components/DropdownSelect';
 
 export default function DiscountsPage() {
   const dispatch = useDispatch();
@@ -35,10 +36,10 @@ export default function DiscountsPage() {
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1 font-medium">Tipe</label>
-              <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                <option value="percentage">Persentase (%)</option>
-                <option value="fixed_amount">Nominal (Rp)</option>
-              </select>
+              <DropdownSelect value={form.type} onChange={(val) => setForm({ ...form, type: val })} options={[
+                { value: 'percentage', label: 'Persentase (%)' },
+                { value: 'fixed_amount', label: 'Nominal (Rp)' },
+              ]} />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1 font-medium">Nilai</label>

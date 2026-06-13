@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import DropdownSelect from '../../components/DropdownSelect';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -73,17 +74,11 @@ export default function AdminSettingsPage() {
           <div className="bg-white rounded-lg shadow-sm p-4">
             <h4 className="text-sm font-semibold text-gray-900 mb-2">PlugoStore Bahasa Admin</h4>
             <div className="relative">
-              <select
+              <DropdownSelect
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm appearance-none bg-white focus:outline-none pr-8"
-              >
-                {languages.map((l) => (
-                  <option key={l.value} value={l.value}>
-                    {l.flag} {l.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setLanguage}
+                options={languages.map((l) => ({ value: l.code, label: `${l.flag} ${l.name}` }))}
+              />
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" viewBox="0 0 16 16" fill="currentColor">
                 <path fillRule="evenodd" d="M1.646 4.646a.5.5 0 01.708 0L8 10.293l5.646-5.647a.5.5 0 01.708.708l-6 6a.5.5 0 01-.708 0l-6-6a.5.5 0 010-.708z" />
               </svg>

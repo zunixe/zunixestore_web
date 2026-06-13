@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProductById, updateProduct } from './productsSlice';
+import DropdownSelect from '../../components/DropdownSelect';
 
 export default function ProductEditPage() {
   const navigate = useNavigate();
@@ -71,6 +72,8 @@ export default function ProductEditPage() {
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setForm({ ...form, [field]: val });
   };
+
+  const handleSelect = (field) => (val) => setForm({ ...form, [field]: val });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -250,11 +253,11 @@ export default function ProductEditPage() {
                 </div>
                 <div className="flex-1">
                   <label className={labelClass}>Produk ditampilkan ke</label>
-                  <select value={form.audience} onChange={handleChange('audience')} className={`${inputClass} bg-white`}>
-                    <option value="all">Semua Orang</option>
-                    <option value="member">Member</option>
-                    <option value="wholesale">Grosir</option>
-                  </select>
+                  <DropdownSelect value={form.audience} onChange={handleSelect('audience')} options={[
+                    { value: 'all', label: 'Semua Orang' },
+                    { value: 'member', label: 'Member' },
+                    { value: 'wholesale', label: 'Grosir' },
+                  ]} />
                 </div>
               </div>
               <div className="flex items-center gap-6">
@@ -276,11 +279,11 @@ export default function ProductEditPage() {
               <p className="text-xs text-blue-600">Kamu dapat mengelola stok produk kamu saat atur Ketersediaan Produk ke 'Gunakan Stok'.</p>
               <div>
                 <label className={labelClass}>Ketersediaan Produk</label>
-                <select value={form.availability} onChange={handleChange('availability')} className={`${inputClass} bg-white`}>
-                  <option value="stock">Gunakan Stok</option>
-                  <option value="always">Selalu Tersedia</option>
-                  <option value="preorder">Pre-order</option>
-                </select>
+                <DropdownSelect value={form.availability} onChange={handleSelect('availability')} options={[
+                  { value: 'stock', label: 'Gunakan Stok' },
+                  { value: 'always', label: 'Selalu Tersedia' },
+                  { value: 'preorder', label: 'Pre-order' },
+                ]} />
               </div>
               {form.availability === 'stock' && (
                 <div>
@@ -322,19 +325,19 @@ export default function ProductEditPage() {
                 <label className={labelClass}>Setelah customer melakukan pembayaran, produk akan dikirim dalam:</label>
                 <div className="flex gap-2 items-center">
                   <input type="number" value={form.shipping_time} onChange={handleChange('shipping_time')} className={`${inputClass} w-20`} />
-                  <select value={form.shipping_unit} onChange={handleChange('shipping_unit')} className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none">
-                    <option value="hours">Jam</option>
-                    <option value="days">Hari</option>
-                  </select>
+                  <DropdownSelect value={form.shipping_unit} onChange={handleSelect('shipping_unit')} options={[
+                    { value: 'hours', label: 'Jam' },
+                    { value: 'days', label: 'Hari' },
+                  ]} className="w-24" />
                 </div>
               </div>
               <div>
                 <label className={labelClass}>Ketika tidak ada stok</label>
-                <select value={form.out_of_stock} onChange={handleChange('out_of_stock')} className={`${inputClass} bg-white`}>
-                  <option value="sold_out">Habis Terjual</option>
-                  <option value="backorder">Terima Pesanan</option>
-                  <option value="hidden">Sembunyikan</option>
-                </select>
+                <DropdownSelect value={form.out_of_stock} onChange={handleSelect('out_of_stock')} options={[
+                  { value: 'sold_out', label: 'Habis Terjual' },
+                  { value: 'backorder', label: 'Terima Pesanan' },
+                  { value: 'hidden', label: 'Sembunyikan' },
+                ]} />
               </div>
             </div>
           </div>
