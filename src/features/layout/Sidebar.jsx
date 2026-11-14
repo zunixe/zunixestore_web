@@ -1,21 +1,75 @@
-import { NavLink } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { NavLink, useLocation, Link } from 'react-router-dom';
+import { useState } from 'react';
+import {
+  Home, ClipboardList, Package, BadgePercent, Users, Palette, BarChart3, LayoutGrid, Settings,
+  ChevronDown, ChevronRight, Wallet, Coins, Plus,
+} from 'lucide-react';
 
-const MENUS = [
-  { label: 'Home', icon: 'M6.5 1.5a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-3a.5.5 0 01-.5-.5V2a.5.5 0 01.5-.5h3zm5 0a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-3a.5.5 0 01-.5-.5V2a.5.5 0 01.5-.5h3zm-5 6a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-3a.5.5 0 01-.5-.5V8a.5.5 0 01.5-.5h3zm5 0a.5.5 0 01.5.5v3a.5.5 0 01-.5.5h-3a.5.5 0 01-.5-.5V8a.5.5 0 01.5-.5h3z', href: '/dashboard' },
-  { label: 'Pesanan', icon: 'M2 4a1 1 0 011-1h10a1 1 0 011 1v1H2V4zm0 3h12v5a2 2 0 01-2 2H4a2 2 0 01-2-2V7zm3 2a1 1 0 000 2h6a1 1 0 000-2H5z', href: '/orders' },
-  { label: 'Customer', icon: 'M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 017 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 01-.014.002H7.022zM11 7a2 2 0 100-4 2 2 0 000 4z', href: '/buyers' },
-  { label: 'Desain Toko', icon: 'M4 1h5.5L13 4.5V7h-1V5H9V2H4v12h4v1H4a1 1 0 01-1-1V2a1 1 0 011-1z', href: '/themes' },
-  { label: 'Analitik & Marketing', icon: 'M1 1h1v12h13v1H1V1zM4 11.5a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v1a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-1zm4-4a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v5a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-5zm4-4a.5.5 0 01.5-.5h1a.5.5 0 01.5.5v9a.5.5 0 01-.5.5h-1a.5.5 0 01-.5-.5v-9z', href: '/analytics' },
-];
-
-const PRODUCT_SUBMENUS = [
-  { label: 'Semua produk', href: '/products' },
-  { label: 'Stok', href: '/inventory' },
-  { label: 'Kategori', href: '/categories' },
-  { label: 'Produk bundle', href: '/product-bundles' },
-  { label: 'Produk unggulan', href: '/featured-products' },
-  { label: 'Pengaturan Produk', href: '/preferences/products' },
+/* Struktur menu mengikuti design-system/plugo-reference.md */
+const MENU = [
+  { label: 'Home', icon: Home, to: '/dashboard' },
+  {
+    label: 'Pesanan', icon: ClipboardList, to: '/orders',
+    children: [
+      { label: 'Semua pesanan', to: '/orders' },
+      { label: 'Konfirmasi Pembayaran', to: '/pending/payment' },
+      { label: 'Pengiriman Tertunda', to: '/pending/shipping' },
+      { label: 'Pengaturan Pesanan', to: '/preferences/orders' },
+      { label: 'Kalender Open Order', to: '/open-order' },
+    ],
+  },
+  {
+    label: 'Produk', icon: Package, to: '/products',
+    children: [
+      { label: 'Semua produk', to: '/products' },
+      { label: 'Stok', to: '/inventory' },
+      { label: 'Kategori', to: '/categories' },
+      { label: 'Produk bundle', to: '/product-bundles' },
+      { label: 'Produk unggulan', to: '/featured-products' },
+      { label: 'Pengaturan Produk', to: '/preferences/products' },
+    ],
+  },
+  {
+    label: 'Diskon', icon: BadgePercent, to: '/product-promotions',
+    children: [
+      { label: 'Diskon produk', to: '/product-promotions' },
+      { label: 'Diskon pengiriman', to: '/shipment-promotions' },
+    ],
+  },
+  {
+    label: 'Customer', icon: Users, to: '/buyers',
+    children: [
+      { label: 'Semua Customer', to: '/buyers' },
+      { label: 'Grup Customer', to: '/buyer-groups' },
+      { label: 'Rating', to: '/ratings' },
+      { label: 'Loyalty', to: '/loyalty' },
+      { label: 'Pengaturan Customer', to: '/preferences/checkout' },
+      { label: 'Notifikasi Customer', to: '/preferences/buyer-notifications' },
+    ],
+  },
+  {
+    label: 'Desain Toko', icon: Palette, to: '/settings/themes',
+    children: [
+      { label: 'Desain & Template', to: '/settings/themes' },
+      { label: 'Halaman Kustom', to: '/shop/pages' },
+      { label: 'Galeri Media', to: '/preferences/asset-manager' },
+      { label: 'Post Blog', to: '/news' },
+      { label: 'FAQ', to: '/preferences/faqs' },
+      { label: 'Testimoni', to: '/testimonials' },
+    ],
+  },
+  {
+    label: 'Analitik & Marketing', icon: BarChart3, to: '/analytics',
+    children: [
+      { label: 'Statistik Toko', to: '/analytics' },
+      { label: 'Laporan Penjualan', to: '/reports' },
+      { label: 'Analisis Real-time', to: '/analytics/realtime' },
+      { label: 'Laporan Wishlist', to: '/analytics/wishlist' },
+      { label: 'Laporan Program Loyalty', to: '/loyalty/analytics' },
+      { label: 'Alat Pemantauan', to: '/preferences/marketing' },
+      { label: 'Kampanye Afiliasi', to: '/affiliate-links' },
+    ],
+  },
 ];
 
 const APPS_LIST = [
@@ -32,123 +86,145 @@ const APPS_LIST = [
   { label: 'Whatsapp Landing Page', href: '/whatsapp-landing-pages' },
 ];
 
-function isProductPath(pathname) {
-  return pathname.startsWith('/products') || pathname.startsWith('/inventory') ||
-    pathname.startsWith('/categories') || pathname.startsWith('/product-bundles') ||
-    pathname.startsWith('/featured-products') || pathname.startsWith('/preferences/products');
+const itemBase = 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors';
+const itemIdle = 'text-subdued hover:bg-gray-100';
+const itemActive = 'bg-primary-surface text-primary';
+
+/** Path aktif untuk grup: cocok dengan salah satu anak, atau prefix-nya. */
+function groupMatches(group, pathname) {
+  return group.children.some((c) => pathname === c.to || pathname.startsWith(`${c.to}/`))
+    || (group.to === '/products' && pathname.startsWith('/products'));
+}
+
+function childActive(child, pathname, siblings) {
+  if (pathname === child.to) return true;
+  if (!pathname.startsWith(`${child.to}/`)) return false;
+  // Jangan aktifkan '/analytics' saat berada di '/analytics/realtime' yang punya entri sendiri.
+  return !siblings.some((s) => s.to !== child.to && (pathname === s.to || pathname.startsWith(`${s.to}/`)) && s.to.length > child.to.length);
 }
 
 export default function Sidebar() {
+  const { pathname } = useLocation();
+  // Grup yang terbuka mengikuti rute aktif; klik manual hanya berlaku sampai rute berubah.
+  const [manual, setManual] = useState({ path: null, label: null });
+  const routeGroup = MENU.find((m) => m.children && groupMatches(m, pathname))?.label ?? null;
+  const open = manual.path === pathname ? manual.label : routeGroup;
+  const setOpen = (label) => setManual({ path: pathname, label });
   const [appsOpen, setAppsOpen] = useState(false);
-  const [productOpen, setProductOpen] = useState(true);
-  const [location, setLocation] = useState({ pathname: window.location.pathname });
-
-  useEffect(() => {
-    const handler = () => setLocation({ pathname: window.location.pathname });
-    window.addEventListener('popstate', handler);
-    return () => window.removeEventListener('popstate', handler);
-  }, []);
-
-  const linkClass = ({ isActive }) =>
-    `flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
-      isActive ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-700 hover:bg-gray-100'
-    }`;
-
-  const subLinkClass = ({ isActive }) =>
-    `block px-4 py-2 ml-8 text-sm transition-colors rounded ${
-      isActive ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-    }`;
 
   return (
-    <nav className="w-[280px] bg-[#f9fafb] h-[calc(100vh-64px)] sticky top-[64px] shrink-0 flex flex-col border-r border-gray-200">
-      <div className="p-4 border-b border-gray-200 space-y-1">
-        <NavLink to="/my-balance" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm">
-          <svg className="w-4 h-4 text-gray-500" viewBox="0 0 16 16" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/></svg>
-          <span className="text-gray-500 text-xs">Saldo</span>
-          <span className="font-semibold text-xs ml-auto">Rp 0</span>
-          <svg className="w-4 h-4 text-gray-400" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M4.646 1.646a.5.5 0 01.708 0l6 6a.5.5 0 010 .708l-6 6a.5.5 0 01-.708-.708L10.293 8 4.646 2.354a.5.5 0 010-.708z"/></svg>
-        </NavLink>
-        <NavLink to="/wallet/report" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 text-sm">
-          <svg className="w-4 h-4 text-yellow-500" viewBox="0 0 16 16" fill="currentColor"><path d="M8 15A7 7 0 118 1a7 7 0 010 14zm0 1A8 8 0 108 0a8 8 0 000 16z"/></svg>
-          <span className="text-gray-500 text-xs">PlugoCoins</span>
-          <span className="font-semibold text-xs ml-auto">0</span>
-          <span className="text-gray-400 text-xs">Poin</span>
-          <span className="font-semibold text-xs">0</span>
-        </NavLink>
+    <nav aria-label="Navigasi utama" className="w-[280px] bg-sidebar h-[calc(100vh-68px)] sticky top-[68px] shrink-0 flex flex-col border-r border-divider">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4">
+        {/* Saldo & Koin */}
+        <div className="rounded-lg border border-divider bg-white mb-4 divide-y divide-divider">
+          <Link to="/my-balance" className="flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 rounded-t-lg">
+            <Wallet className="w-4 h-4 text-subdued" aria-hidden="true" />
+            <span className="text-xs text-subdued font-medium font-[family-name:var(--font-label)]">Saldo</span>
+            <span className="ml-auto text-xs font-semibold text-neutral">Rp 0</span>
+            <ChevronRight className="w-4 h-4 text-subdued" aria-hidden="true" />
+          </Link>
+          <Link to="/wallet/report" className="flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 rounded-b-lg">
+            <Coins className="w-4 h-4 text-subdued" aria-hidden="true" />
+            <div className="flex-1 text-xs text-subdued font-medium font-[family-name:var(--font-label)] leading-4">
+              <div className="flex justify-between"><span>Koin</span><span className="font-semibold text-neutral">0</span></div>
+              <div className="flex justify-between"><span>Poin</span><span className="text-neutral">0</span></div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-subdued" aria-hidden="true" />
+          </Link>
+        </div>
+
+        <ul className="space-y-0.5">
+          {MENU.map((item) => {
+            const Icon = item.icon;
+            if (!item.children) {
+              return (
+                <li key={item.label}>
+                  <NavLink to={item.to} end className={({ isActive }) => `${itemBase} ${isActive ? itemActive : itemIdle}`}>
+                    <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span className="flex-1">{item.label}</span>
+                  </NavLink>
+                </li>
+              );
+            }
+            const isOpen = open === item.label;
+            const inGroup = groupMatches(item, pathname);
+            return (
+              <li key={item.label}>
+                <Link
+                  to={item.to}
+                  onClick={() => setOpen(isOpen && inGroup ? null : item.label)}
+                  aria-expanded={isOpen}
+                  className={`${itemBase} ${inGroup && !isOpen ? itemActive : itemIdle} ${inGroup ? 'text-neutral' : ''}`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  <span className="flex-1">{item.label}</span>
+                </Link>
+                {isOpen && (
+                  <ul className="mt-0.5 space-y-0.5">
+                    {item.children.map((c) => {
+                      const active = childActive(c, pathname, item.children);
+                      return (
+                        <li key={c.to + c.label}>
+                          <Link to={c.to} className={`block pl-6 pr-3 py-2 rounded-lg text-sm ${active ? itemActive : 'text-neutral hover:bg-gray-100'}`}>
+                            {c.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+
+          {/* Aplikasi */}
+          <li>
+            <button
+              type="button"
+              onClick={() => setAppsOpen(!appsOpen)}
+              aria-expanded={appsOpen}
+              className={`${itemBase} ${itemIdle} w-full cursor-pointer`}
+            >
+              <LayoutGrid className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span className="flex-1 text-left">Aplikasi</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${appsOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+            </button>
+            {appsOpen && (
+              <ul className="mt-0.5 space-y-0.5">
+                {APPS_LIST.map((app) => {
+                  const external = app.href.startsWith('http');
+                  const cls = `flex flex-col pl-9 pr-3 py-1.5 rounded-lg ${pathname === app.href ? itemActive : 'hover:bg-gray-100'}`;
+                  const body = (
+                    <>
+                      <span className="text-sm text-neutral">{app.label}</span>
+                      <span className="text-[11px] text-subdued">Tanpa Kedaluwarsa</span>
+                    </>
+                  );
+                  return (
+                    <li key={app.label}>
+                      {external
+                        ? <a href={app.href} target="_blank" rel="noopener noreferrer" className={cls}>{body}</a>
+                        : <Link to={app.href} className={cls}>{body}</Link>}
+                    </li>
+                  );
+                })}
+                <li>
+                  <button type="button" className="flex items-center gap-2 pl-9 pr-3 py-2 text-sm text-primary hover:bg-gray-100 rounded-lg w-full cursor-pointer">
+                    <Plus className="w-4 h-4" aria-hidden="true" /> Tambahkan Aplikasi
+                  </button>
+                </li>
+              </ul>
+            )}
+          </li>
+        </ul>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-2">
-        {MENUS.map((item) => (
-          <NavLink key={item.href} to={item.href} className={linkClass}>
-            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d={item.icon} /></svg>
-            <span className="flex-1">{item.label}</span>
-          </NavLink>
-        ))}
-
-        {/* Produk with submenu */}
-        <div>
-          <div
-            onClick={() => setProductOpen(!productOpen)}
-            className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors cursor-pointer ${
-              isProductPath(location.pathname) ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 00-3 3v1h6V4a3 3 0 00-3-3zm4 4V4a4 4 0 10-8 0v1H3a1 1 0 00-.994.89l-1 9A1 1 0 002 16h12a1 1 0 00.994-1.11l-1-9A1 1 0 0013 5H5z"/></svg>
-            <NavLink to="/products" className="flex-1" onClick={(e) => e.stopPropagation()}>Produk</NavLink>
-            <svg className={`w-5 h-5 text-gray-400 transition-transform ${productOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-          </div>
-          {productOpen && (
-            <div>
-              {PRODUCT_SUBMENUS.map((sub) => (
-                <NavLink key={sub.href} to={sub.href} className={subLinkClass} end={sub.href === '/products'}>
-                  {sub.label}
-                </NavLink>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Diskon */}
-        <NavLink to="/product-promotions" className={linkClass}>
-          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M10.5 1.5a.5.5 0 01.5.5v4a.5.5 0 01-.5.5h-4a.5.5 0 010-1h2.793L4.146 1.854a.5.5 0 11.708-.708L10 4.793V2a.5.5 0 01.5-.5z"/></svg>
-          <span className="flex-1">Diskon</span>
-        </NavLink>
-
-        {/* Aplikasi */}
-        <div className="cursor-pointer" onClick={() => setAppsOpen(!appsOpen)}>
-          <div className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4a1 1 0 011-1h1.5a1 1 0 011 1v1.5a1 1 0 01-1 1H3a1 1 0 01-1-1V4zm4.5 0a1 1 0 011-1H9a1 1 0 011 1v1.5a1 1 0 01-1 1H7.5a1 1 0 01-1-1V4zm4.75 0a.75.75 0 00-.75.75v.5a.75.75 0 001.5 0v-.5a.75.75 0 00-.75-.75zM2 8.5a1 1 0 011-1h1.5a1 1 0 011 1V10a1 1 0 01-1 1H3a1 1 0 01-1-1V8.5zm4.5 0a1 1 0 011-1H9a1 1 0 011 1V10a1 1 0 01-1 1H7.5a1 1 0 01-1-1V8.5zm4.75-.5a.75.75 0 00-.75.75v3.5a.75.75 0 001.5 0v-3.5A.75.75 0 0011.25 8z"/></svg>
-            <span className="flex-1">Aplikasi</span>
-            <svg className={`w-5 h-5 text-gray-400 transition-transform ${appsOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-          </div>
-          {appsOpen && (
-            <div>
-              {APPS_LIST.map(app => (
-                <a key={app.label} href={app.href} target={app.href.startsWith('http') ? '_blank' : undefined} rel={app.href.startsWith('http') ? 'noopener noreferrer' : undefined} className="flex items-center gap-2.5 px-4 py-2.5 ml-4 text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-100 cursor-pointer rounded">
-                  {app.label}
-                </a>
-              ))}
-              <div className="flex items-center gap-2.5 px-4 py-2.5 ml-4 text-sm text-blue-600 hover:text-blue-700 cursor-pointer rounded">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                Tambahkan Aplikasi
-              </div>
-            </div>
-          )}
-        </div>
-
-        <NavLink to="/settings" className={({ isActive }) =>
-          `flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${isActive ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-700 hover:bg-gray-100'}`
-        }>
-          <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor"><path fillRule="evenodd" d="M11.5 2a.5.5 0 01.5.5v1.793l4.146-4.146a.5.5 0 11.708.708L12.707 5H14.5a.5.5 0 010 1h-4a.5.5 0 01-.5-.5v-4a.5.5 0 01.5-.5z"/></svg>
+      {/* Pengaturan menempel di bawah */}
+      <div className="px-4 py-1.5 border-t border-divider bg-sidebar">
+        <NavLink to="/preferences" className={({ isActive }) => `${itemBase} ${isActive || pathname.startsWith('/settings/') && !pathname.startsWith('/settings/themes') ? itemActive : itemIdle}`}>
+          <Settings className="w-4 h-4 shrink-0" aria-hidden="true" />
           <span className="flex-1">Pengaturan</span>
         </NavLink>
-      </div>
-
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer text-xs text-gray-700">
-          <svg className="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-          <span>Tambahkan Store ke Layar Depan!</span>
-        </div>
       </div>
     </nav>
   );

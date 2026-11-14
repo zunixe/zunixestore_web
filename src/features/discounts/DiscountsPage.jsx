@@ -1,91 +1,366 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  PageHeader, Card, Button, IconButton, Badge, SearchInput, FilterChip, DataTable, Pagination, Modal,
+  TextInput, Select, Toggle, formatRp,
+} from '../../components/ui';
+import api from '../../utils/api';
 import { fetchDiscounts, createDiscount, deleteDiscount } from './discountsSlice';
-import { formatCurrency } from '../../utils/formatters';
-import DropdownSelect from '../../components/DropdownSelect';
+
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Aktif' },
+  { value: 'inactive', label: 'Tidak Aktif' },
+];
+const TYPE_OPTIONS = [
+  { value: 'percentage', label: 'Persentase (%)' },
+  { value: 'fixed_amount', label: 'Nominal (Rp)' },
+];
+const EMPTY_FORM = {
+  code: '', type: 'percentage', value: '', max_discount: '', min_purchase: '', usage_limit: '', start_date: '', end_date: '', status: 'active',
+};
+
+const pad = (n) => String(n).padStart(2, '0');
+const todayYmd = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const fmtDate = (s) => {
+  if (!s) return '';
+  const d = new Date(String(s).length === 10 ? `${s}T00:00:00` : s);
+  return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const discountText = (d) => (d.type === 'percentage' ? `${d.value}%` : formatRp(d.value));
+const discountName = (d) => d.name || (d.type === 'percentage' ? `Diskon ${d.value}%` : `Potongan ${formatRp(d.value)}`);
+
+function isActive(d, today) {
+  if (d.status !== 'active') return false;
+  if (d.start_date && String(d.start_date).slice(0, 10) > today) return false;
+  if (d.end_date && String(d.end_date).slice(0, 10) < today) return false;
+  if (d.usage_limit && Number(d.usage_count || 0) >= Number(d.usage_limit)) return false;
+  return true;
+}
+
+function activeRange(d) {
+  if (!d.start_date && !d.end_date) return 'Selalu aktif';
+  if (d.start_date && !d.end_date) return `Mulai ${fmtDate(d.start_date)}`;
+  if (!d.start_date) return `Sampai ${fmtDate(d.end_date)}`;
+  return `${fmtDate(d.start_date)} - ${fmtDate(d.end_date)}`;
+}
+
+function MoreMenu({ items }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('click', h);
+    return () => document.removeEventListener('click', h);
+  }, []);
+  return (
+    <div className="relative" ref={ref}>
+      <IconButton icon={MoreVertical} label="Opsi lainnya" aria-expanded={open} className="border border-divider bg-white" onClick={() => setOpen((o) => !o)} />
+      {open && (
+        <div className="absolute right-0 z-30 mt-1 min-w-[200px] bg-white rounded-lg shadow-lg border border-divider py-1">
+          {items.map((it) => (
+            <button
+              key={it.label}
+              type="button"
+              disabled={it.disabled}
+              onClick={() => { setOpen(false); it.onClick(); }}
+              className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer disabled:text-gray-400 disabled:cursor-default"
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DiscountFormModal({ initial, onClose, onSubmit }) {
+  const isEdit = !!initial.id;
+  const [form, setForm] = useState(() => ({
+    ...EMPTY_FORM,
+    ...Object.fromEntries(Object.entries(initial).map(([k, v]) => [k, v ?? ''])),
+    start_date: initial.start_date ? String(initial.start_date).slice(0, 10) : '',
+    end_date: initial.end_date ? String(initial.end_date).slice(0, 10) : '',
+  }));
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setErr('');
+    const value = Number(form.value);
+    if (!value || value <= 0) { setErr('Nilai diskon harus lebih dari 0.'); return; }
+    if (form.type === 'percentage' && value > 100) { setErr('Diskon persentase maksimal 100%.'); return; }
+    if (form.start_date && form.end_date && form.end_date < form.start_date) { setErr('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
+    const num = (v) => (v === '' || v === null ? null : Number(v));
+    const payload = {
+      code: form.code.trim().toUpperCase() || null,
+      type: form.type,
+      value,
+      min_purchase: num(form.min_purchase) ?? 0,
+      max_discount: form.type === 'percentage' ? num(form.max_discount) : null,
+      usage_limit: num(form.usage_limit),
+      start_date: form.start_date || null,
+      end_date: form.end_date || null,
+      status: form.status,
+    };
+    setBusy(true);
+    try {
+      await onSubmit(payload);
+    } catch (ex) {
+      setErr(typeof ex === 'string' ? ex : ex?.message || 'Gagal menyimpan diskon.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      open
+      title={isEdit ? 'Ubah diskon' : 'Buat diskon'}
+      onClose={onClose}
+      width="max-w-xl"
+      footer={(
+        <>
+          <Button variant="secondary" onClick={onClose}>Batal</Button>
+          <Button type="submit" form="discount-form" disabled={busy}>{busy ? 'Menyimpan...' : 'Simpan'}</Button>
+        </>
+      )}
+    >
+      <form id="discount-form" onSubmit={submit} className="space-y-4">
+        <TextInput
+          id="disc-code"
+          label="Kode diskon"
+          placeholder="Contoh: HEMAT10"
+          value={form.code}
+          onChange={(e) => set({ code: e.target.value.toUpperCase() })}
+          hint="Kosongkan jika diskon berlaku otomatis tanpa kode."
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Select id="disc-type" label="Tipe diskon" value={form.type} onChange={(v) => set({ type: v })} options={TYPE_OPTIONS} />
+          <TextInput
+            id="disc-value"
+            label="Nilai diskon"
+            type="number"
+            min="0"
+            required
+            suffix={form.type === 'percentage' ? '%' : 'Rp'}
+            value={form.value}
+            onChange={(e) => set({ value: e.target.value })}
+          />
+          {form.type === 'percentage' && (
+            <TextInput id="disc-max" label="Maks. potongan" type="number" min="0" suffix="Rp" value={form.max_discount} onChange={(e) => set({ max_discount: e.target.value })} />
+          )}
+          <TextInput id="disc-min" label="Min. pembelian" type="number" min="0" suffix="Rp" value={form.min_purchase} onChange={(e) => set({ min_purchase: e.target.value })} />
+          <TextInput
+            id="disc-quota"
+            label="Kuota"
+            type="number"
+            min="1"
+            placeholder="Tidak terbatas"
+            value={form.usage_limit}
+            onChange={(e) => set({ usage_limit: e.target.value })}
+          />
+          <TextInput id="disc-start" label="Tanggal mulai" type="date" value={form.start_date} onChange={(e) => set({ start_date: e.target.value })} />
+          <TextInput id="disc-end" label="Tanggal selesai" type="date" min={form.start_date || undefined} value={form.end_date} onChange={(e) => set({ end_date: e.target.value })} />
+        </div>
+        <Toggle
+          id="disc-status"
+          label="Aktifkan diskon"
+          description="Diskon nonaktif tidak bisa dipakai pembeli walaupun masih dalam periode aktif."
+          checked={form.status === 'active'}
+          onChange={(v) => set({ status: v ? 'active' : 'inactive' })}
+        />
+        {err && <p className="text-sm text-danger" role="alert">{err}</p>}
+      </form>
+    </Modal>
+  );
+}
 
 export default function DiscountsPage() {
   const dispatch = useDispatch();
   const { currentStore } = useSelector((s) => s.stores);
-  const { items, isLoading } = useSelector((s) => s.discounts);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ type: 'percentage', value: '', code: '', min_purchase: '', start_date: '', end_date: '' });
+  const { items, isLoading, error } = useSelector((s) => s.discounts);
+  const storeId = currentStore?.id;
 
-  useEffect(() => { if (currentStore) dispatch(fetchDiscounts(currentStore.id)); }, [dispatch, currentStore]);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [actionError, setActionError] = useState('');
 
-  const handleCreate = (e) => {
-    e.preventDefault();
-    dispatch(createDiscount({ storeId: currentStore.id, data: form }));
-    setShowForm(false);
-    setForm({ type: 'percentage', value: '', code: '', min_purchase: '', start_date: '', end_date: '' });
+  useEffect(() => { if (storeId) dispatch(fetchDiscounts(storeId)); }, [dispatch, storeId]);
+
+  const today = todayYmd();
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (items || []).filter((d) => {
+      if (q && !`${d.code || ''} ${discountName(d)}`.toLowerCase().includes(q)) return false;
+      if (statusFilter && (isActive(d, today) ? 'active' : 'inactive') !== statusFilter) return false;
+      if (typeFilter && d.type !== typeFilter) return false;
+      return true;
+    });
+  }, [items, search, statusFilter, typeFilter, today]);
+  const rows = filtered.slice((page - 1) * limit, page * limit);
+
+  const refresh = () => dispatch(fetchDiscounts(storeId));
+
+  const submitForm = async (payload) => {
+    if (editing?.id) {
+      await api.put(`/stores/${storeId}/discounts/${editing.id}`, payload);
+      refresh();
+    } else {
+      const created = await dispatch(createDiscount({ storeId, data: payload })).unwrap();
+      // Endpoint create belum menerima `status`; nonaktifkan lewat update bila perlu.
+      if (payload.status !== 'active' && created?.id) {
+        await api.put(`/stores/${storeId}/discounts/${created.id}`, { status: payload.status });
+        refresh();
+      }
+    }
+    setEditing(null);
   };
+
+  const confirmDelete = async () => {
+    setDeleteBusy(true);
+    setActionError('');
+    try {
+      await dispatch(deleteDiscount({ storeId, discountId: deleting.id })).unwrap();
+      setDeleting(null);
+    } catch (ex) {
+      setActionError(typeof ex === 'string' ? ex : 'Gagal menghapus diskon.');
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
+  const exportCsv = () => {
+    const header = ['Nama', 'Kode diskon', 'Diskon', 'Min. Pembelian', 'Kuota', 'Tanggal Aktif', 'Status'];
+    const lines = filtered.map((d) => [
+      discountName(d), d.code || '', discountText(d), d.min_purchase || 0,
+      d.usage_limit ? `${d.usage_count || 0}/${d.usage_limit}` : `${d.usage_count || 0}/-`,
+      activeRange(d), isActive(d, today) ? 'Aktif' : 'Tidak Aktif',
+    ]);
+    const csv = [header, ...lines].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `diskon-produk-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const columns = [
+    {
+      key: 'name', label: 'Nama', className: 'whitespace-nowrap',
+      render: (d) => (
+        <button type="button" onClick={() => setEditing(d)} className="font-medium text-neutral underline decoration-divider underline-offset-4 hover:text-primary hover:decoration-primary cursor-pointer">
+          {discountName(d)}
+        </button>
+      ),
+    },
+    { key: 'code', label: 'Kode diskon', render: (d) => (d.code ? <span className="font-mono text-[13px]">{d.code}</span> : <span className="text-subdued">Otomatis</span>) },
+    {
+      key: 'value', label: 'Diskon', className: 'whitespace-nowrap',
+      render: (d) => (
+        <div>
+          <div>{discountText(d)}</div>
+          {d.type === 'percentage' && d.max_discount ? <div className="text-xs text-subdued">Maks. {formatRp(d.max_discount)}</div> : null}
+        </div>
+      ),
+    },
+    { key: 'min_purchase', label: 'Min. Pembelian', className: 'whitespace-nowrap', render: (d) => (Number(d.min_purchase) ? formatRp(d.min_purchase) : '-') },
+    {
+      key: 'quota', label: 'Kuota', className: 'whitespace-nowrap tabular-nums',
+      render: (d) => (d.usage_limit ? `${d.usage_count || 0}/${d.usage_limit}` : <span className="text-subdued">{d.usage_count || 0} / Tidak terbatas</span>),
+    },
+    { key: 'dates', label: 'Tanggal Aktif', className: 'whitespace-nowrap', render: activeRange },
+    { key: 'products', label: 'Jumlah Produk', className: 'whitespace-nowrap', render: () => <span className="text-subdued">Semua produk</span> },
+    {
+      key: 'status', label: 'Status',
+      render: (d) => (isActive(d, today) ? <Badge tone="success">Aktif</Badge> : <Badge tone="muted">Tidak Aktif</Badge>),
+    },
+    {
+      key: 'actions', label: <span className="sr-only">Aksi</span>, className: 'w-24',
+      render: (d) => (
+        <div className="flex items-center justify-end gap-1">
+          <IconButton icon={Pencil} label={`Ubah ${discountName(d)}`} onClick={() => setEditing(d)} />
+          <IconButton icon={Trash2} label={`Hapus ${discountName(d)}`} className="text-danger hover:bg-danger-surface" onClick={() => setDeleting(d)} />
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Diskon & Promosi</h2>
-        <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">+ Tambah Diskon</button>
-      </div>
+      <PageHeader
+        title="Diskon Produk"
+        actions={(
+          <>
+            <MoreMenu
+              items={[
+                { label: 'Unduh CSV', onClick: exportCsv, disabled: filtered.length === 0 },
+                { label: 'Muat ulang', onClick: refresh, disabled: !storeId },
+              ]}
+            />
+            <Button icon={Plus} onClick={() => setEditing({})} disabled={!storeId}>Buat diskon</Button>
+          </>
+        )}
+      />
 
-      {showForm && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
-          <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1 font-medium">Kode</label>
-              <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="SUMMER2026" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1 font-medium">Tipe</label>
-              <DropdownSelect value={form.type} onChange={(val) => setForm({ ...form, type: val })} options={[
-                { value: 'percentage', label: 'Persentase (%)' },
-                { value: 'fixed_amount', label: 'Nominal (Rp)' },
-              ]} />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1 font-medium">Nilai</label>
-              <input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1 font-medium">Min. Pembelian</label>
-              <input type="number" value={form.min_purchase} onChange={(e) => setForm({ ...form, min_purchase: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1 font-medium">Tanggal Mulai</label>
-              <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1 font-medium">Tanggal Selesai</label>
-              <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            </div>
-            <div className="col-span-2 flex gap-2">
-              <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">Simpan</button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2 border border-gray-300 rounded-lg text-sm">Batal</button>
-            </div>
-          </form>
+      <Card padded={false}>
+        <div className="p-4 space-y-3">
+          <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Cari" />
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterChip label="Status Apa Pun" value={statusFilter} options={STATUS_OPTIONS} onChange={(v) => { setStatusFilter(v); setPage(1); }} />
+            <FilterChip label="Tipe Apa Pun" value={typeFilter} options={TYPE_OPTIONS} onChange={(v) => { setTypeFilter(v); setPage(1); }} />
+          </div>
+          {(error || actionError) && <p className="text-sm text-danger" role="alert">{actionError || `Gagal memuat diskon: ${error}`}</p>}
         </div>
+        <DataTable
+          columns={columns}
+          rows={rows}
+          loading={isLoading}
+          emptyText={currentStore ? 'Belum ada diskon' : 'Pilih toko terlebih dahulu'}
+          minWidth={1100}
+        />
+        <Pagination
+          page={page}
+          limit={limit}
+          total={filtered.length}
+          onPage={setPage}
+          onLimit={(l) => { setLimit(l); setPage(1); }}
+          label="Items per page"
+        />
+      </Card>
+
+      <p className="text-xs text-subdued mt-3">Catatan: Diskon tidak bisa diaplikasikan ketika harga grosir sedang aktif.</p>
+
+      {editing && (
+        <DiscountFormModal key={editing.id || 'new'} initial={editing} onClose={() => setEditing(null)} onSubmit={submitForm} />
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        {isLoading ? <p className="text-gray-400 col-span-2 text-center py-8">Memuat...</p> :
-          items.length === 0 ? <p className="text-gray-400 col-span-2 text-center py-8">Belum ada diskon</p> :
-          items.map((d) => (
-            <div key={d.id} className="bg-white rounded-xl shadow-sm p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600">
-                  <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03z" clipRule="evenodd"/></svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{d.code || `Diskon ${d.value}${d.type === 'percentage' ? '%' : ''}`}</p>
-                  <p className="text-xs text-gray-500">{d.type === 'percentage' ? `${d.value}%` : formatCurrency(d.value)} off</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${d.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{d.status === 'active' ? 'Aktif' : 'Nonaktif'}</span>
-                <button onClick={() => dispatch(deleteDiscount({ storeId: currentStore.id, discountId: d.id }))} className="text-xs text-red-500 hover:underline">Hapus</button>
-              </div>
-            </div>
-          ))}
-      </div>
+      <Modal
+        open={!!deleting}
+        title="Hapus diskon?"
+        onClose={() => setDeleting(null)}
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setDeleting(null)}>Batal</Button>
+            <Button variant="danger" onClick={confirmDelete} disabled={deleteBusy}>{deleteBusy ? 'Menghapus...' : 'Hapus'}</Button>
+          </>
+        )}
+      >
+        <p className="text-sm text-neutral">
+          Diskon <strong>{deleting ? discountName(deleting) : ''}</strong>
+          {deleting?.code ? ` (${deleting.code})` : ''} akan dihapus permanen dan tidak bisa dipakai lagi oleh pembeli.
+        </p>
+      </Modal>
     </div>
   );
 }

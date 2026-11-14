@@ -260,7 +260,7 @@ export default function ProfilePage() {
             onClick={() => setActiveTab('akun')}
             className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'akun'
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -270,7 +270,7 @@ export default function ProfilePage() {
             onClick={() => setActiveTab('toko')}
             className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
               activeTab === 'toko'
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -322,7 +322,7 @@ export default function ProfilePage() {
                 <input
                   value={form.full_name}
                   onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
 
@@ -336,7 +336,7 @@ export default function ProfilePage() {
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     disabled={user?.phone_verified}
-                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${
                       user?.phone_verified ? 'bg-gray-50 text-gray-500' : ''
                     }`}
                   />
@@ -352,7 +352,7 @@ export default function ProfilePage() {
                     {user?.phone_verified ? (
                       <button
                         onClick={openPinVerify}
-                        className="text-blue-600 text-sm font-medium hover:underline"
+                        className="text-primary text-sm font-medium hover:underline"
                       >
                         Ubah
                       </button>
@@ -366,7 +366,7 @@ export default function ProfilePage() {
                             handleWaRequest();
                           }
                         }}
-                        className="text-blue-600 text-sm font-medium hover:underline"
+                        className="text-primary text-sm font-medium hover:underline"
                       >
                         Verifikasi
                       </button>
@@ -460,7 +460,7 @@ export default function ProfilePage() {
           <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900">Toko Saya</h3>
-              <a href="/stores/new" className="text-blue-600 text-sm font-medium hover:underline">
+              <a href="/stores/new" className="text-primary text-sm font-medium hover:underline">
                 + Tambah Toko
               </a>
             </div>
@@ -468,7 +468,7 @@ export default function ProfilePage() {
               <div className="space-y-3">
                 {stores.map((store) => (
                   <div key={store.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+                    <div className="w-10 h-10 rounded-lg bg-primary-surface flex items-center justify-center text-primary font-bold text-sm">
                       {(store.name || 'T').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
@@ -502,7 +502,7 @@ export default function ProfilePage() {
               maxLength={6}
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="• • • • • •"
               autoFocus
             />
@@ -511,7 +511,7 @@ export default function ProfilePage() {
               <button onClick={closeModal} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
                 Batal
               </button>
-              <button onClick={handleVerifyPin} disabled={modalLoading || !pinInput} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">
+              <button onClick={handleVerifyPin} disabled={modalLoading || !pinInput} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-50">
                 {modalLoading ? 'Memverifikasi...' : 'Konfirmasi'}
               </button>
             </div>
@@ -532,7 +532,7 @@ export default function ProfilePage() {
                   maxLength={6}
                   value={oldPin}
                   onChange={(e) => setOldPin(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="PIN Lama"
                   autoFocus
                 />
@@ -542,7 +542,7 @@ export default function ProfilePage() {
                 maxLength={6}
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="PIN Baru"
                 autoFocus={!hasPin}
               />
@@ -551,7 +551,7 @@ export default function ProfilePage() {
                 maxLength={6}
                 value={confirmPin}
                 onChange={(e) => setConfirmPin(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Konfirmasi PIN Baru"
               />
             </div>
@@ -560,7 +560,7 @@ export default function ProfilePage() {
               <button onClick={closeModal} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
                 Batal
               </button>
-              <button onClick={handleChangePin} disabled={modalLoading || !newPin || !confirmPin} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">
+              <button onClick={handleChangePin} disabled={modalLoading || !newPin || !confirmPin} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-50">
                 {modalLoading ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>
@@ -585,7 +585,7 @@ export default function ProfilePage() {
               maxLength={6}
               value={waCode}
               onChange={(e) => setWaCode(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-center text-lg tracking-[0.5em] placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="• • • • • •"
               autoFocus
             />
@@ -594,7 +594,7 @@ export default function ProfilePage() {
               <button onClick={closeModal} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700">
                 Batal
               </button>
-              <button onClick={handleWaVerify} disabled={modalLoading || !waCode} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50">
+              <button onClick={handleWaVerify} disabled={modalLoading || !waCode} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-50">
                 {modalLoading ? 'Memverifikasi...' : 'Verifikasi'}
               </button>
             </div>

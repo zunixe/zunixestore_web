@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { FileText } from 'lucide-react';
 import SettingsPageLayout from './SettingsPageLayout';
 import api from '../../utils/api';
+import { Card, CardHeader, Button, Badge } from '../../components/ui';
+import { SaveStatus } from '../product-preferences/ProductParts';
 
 const POLICIES = [
   { key: 'privacy_policy', title: 'Kebijakan Privasi', desc: 'Bagaimana data customer dikumpulkan, digunakan, dan dilindungi.' },
@@ -12,80 +15,98 @@ const POLICIES = [
 
 export default function PoliciesPage() {
   const { currentStore } = useSelector((s) => s.stores);
-  const [active, setActive] = useState(null);
-  const [content, setContent] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const storeId = currentStore?.id;
+  const [active, setActive] = useState(POLICIES[0].key);
+  const [data, setData] = useState({ storeId: null, content: {} });
+  const [status, setStatus] = useState({ type: 'idle', message: '' });
+  const timer = useRef(null);
 
-  const load = useCallback(async () => {
-    if (!currentStore) return;
-    try {
-      const res = await api.get(`/stores/${currentStore.id}/settings`);
-      setContent({
-        privacy_policy: res.data?.privacy_policy || '',
-        terms_conditions: res.data?.terms_conditions || '',
-        return_policy: res.data?.return_policy || '',
-        shipping_policy: res.data?.shipping_policy || '',
-      });
-    } catch {}
-    setLoading(false);
-  }, [currentStore]);
+  useEffect(() => {
+    if (!storeId) return undefined;
+    let cancelled = false;
+    api.get(`/stores/${storeId}/settings`)
+      .then((res) => {
+        if (cancelled) return;
+        const content = {};
+        POLICIES.forEach((p) => { content[p.key] = res.data?.[p.key] || ''; });
+        setData({ storeId, content });
+      })
+      .catch(() => { if (!cancelled) setData({ storeId, content: {} }); });
+    return () => { cancelled = true; };
+  }, [storeId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const loading = !!storeId && data.storeId !== storeId;
+  const { content } = data;
+  const current = POLICIES.find((p) => p.key === active);
 
   const handleSave = async () => {
-    setSaving(true);
+    if (!storeId) return;
+    setStatus({ type: 'saving', message: '' });
     try {
-      await api.put(`/stores/${currentStore.id}/settings`, content);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {}
-    setSaving(false);
-  };
-
-  const handleContentChange = (key) => (e) => {
-    setContent({ ...content, [key]: e.target.value });
+      const body = {};
+      POLICIES.forEach((p) => { body[p.key] = content[p.key] || ''; });
+      await api.put(`/stores/${storeId}/settings`, body);
+      setStatus({ type: 'saved', message: 'Tersimpan' });
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setStatus({ type: 'idle', message: '' }), 2500);
+    } catch (err) {
+      setStatus({ type: 'error', message: err.message || 'Gagal menyimpan' });
+    }
   };
 
   return (
     <SettingsPageLayout title="Kebijakan Toko" desc="Atur kebijakan toko kamu.">
-      {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-          <p className="text-sm text-gray-400">Memuat...</p>
-        </div>
-      ) : (
-        <div className="flex gap-4">
-          <div className="w-64 shrink-0 space-y-1">
-            {POLICIES.map((p) => (
-              <button key={p.key} onClick={() => setActive(p.key)} className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${active === p.key ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-100'}`}>
-                <p className="font-medium">{p.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{p.desc}</p>
-              </button>
-            ))}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-4">
+        <Card padded={false} className="p-2 self-start">
+          <nav aria-label="Daftar kebijakan" className="space-y-1">
+            {POLICIES.map((p) => {
+              const on = active === p.key;
+              const filled = !!(content[p.key] || '').trim();
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => setActive(p.key)}
+                  aria-current={on ? 'true' : undefined}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors cursor-pointer ${on ? 'bg-primary-surface' : 'hover:bg-gray-50'}`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className={`text-sm font-medium ${on ? 'text-primary' : 'text-neutral'}`}>{p.title}</span>
+                    {!loading && <Badge tone={filled ? 'success' : 'muted'}>{filled ? 'Terisi' : 'Kosong'}</Badge>}
+                  </span>
+                  <span className="block text-xs text-subdued mt-0.5 leading-5">{p.desc}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title={current.title}
+            subtitle={current.desc}
+            action={<FileText className="w-4 h-4 text-subdued" aria-hidden="true" />}
+          />
+          <label htmlFor="policy-content" className="sr-only">Isi {current.title}</label>
+          <textarea
+            id="policy-content"
+            value={content[active] || ''}
+            disabled={loading}
+            onChange={(e) => setData((d) => ({ ...d, content: { ...d.content, [active]: e.target.value } }))}
+            rows={14}
+            placeholder={loading ? 'Memuat...' : 'Tulis kebijakan di sini...'}
+            className="w-full px-3 py-2 rounded-md border border-divider text-sm bg-white focus:outline-none focus:border-primary resize-y disabled:bg-gray-50"
+          />
+          <div className="flex items-center justify-end gap-3 mt-3">
+            <SaveStatus status={status} />
+            <Button onClick={handleSave} disabled={loading || status.type === 'saving'}>
+              {status.type === 'saving' ? 'Menyimpan...' : 'Simpan'}
+            </Button>
           </div>
-          <div className="flex-1 bg-white rounded-xl border border-gray-100 p-5">
-            {active ? (
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">{POLICIES.find((p) => p.key === active)?.title}</h4>
-                <textarea value={content[active] || ''} onChange={handleContentChange(active)} rows={12} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 resize-none" placeholder="Tulis kebijakan di sini..." />
-                <div className="flex justify-end mt-3">
-                  <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                    {saving ? 'Menyimpan...' : saved ? 'Tersimpan' : 'Simpan'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <svg className="w-10 h-10 text-gray-300 mx-auto mb-2" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9 12h2v2H9v-2zm1-4a5.002 5.002 0 014.905 4H15a1 1 0 010 2h-1.095A5.002 5.002 0 015 10a5 5 0 015-5zm0 8a3 3 0 100-6 3 3 0 000 6z" />
-                </svg>
-                <p className="text-sm text-gray-400">Pilih kebijakan untuk mengedit konten</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        </Card>
+      </div>
     </SettingsPageLayout>
   );
 }

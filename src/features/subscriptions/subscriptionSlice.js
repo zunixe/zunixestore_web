@@ -1,8 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 
-export const fetchPlans = createAsyncThunk('subscriptions/fetchPlans', async (_, { rejectWithValue }) => {
-  try { const res = await api.get('/stores/subscription/plans'); return res.data; }
+export const fetchPlans = createAsyncThunk('subscriptions/fetchPlans', async (storeId, { rejectWithValue }) => {
+  try { const res = await api.get(`/stores/${storeId}/subscription/plans`); return res.data; }
   catch (err) { return rejectWithValue(err.message); }
 });
 export const fetchSubscription = createAsyncThunk('subscriptions/fetch', async (storeId, { rejectWithValue }) => {

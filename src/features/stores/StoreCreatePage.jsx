@@ -46,7 +46,7 @@ export default function StoreCreatePage() {
           <label className="block text-sm font-medium text-gray-700 mb-1">Domain (opsional)</label>
           <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm" placeholder="tokosaya.com" />
         </div>
-        <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        <button type="submit" disabled={loading} className="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed">
           {loading ? 'Menyimpan...' : 'Buat Toko'}
         </button>
       </form>

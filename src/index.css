@@ -1,9 +1,41 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Roboto", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Inter", "Roboto", ui-sans-serif, system-ui, sans-serif;
+
+  /* Token warna — lihat design-system/plugo-reference.md */
+  --color-primary: #4169e1;
+  --color-primary-hover: #3457c4;
+  --color-primary-surface: #ecf0fc;
+  --color-page: #eff3f8;
+  --color-sidebar: #f9fafb;
+  --color-neutral: #1b1c20;
+  --color-subdued: #6b7280;
+  --color-divider: #e5e7eb;
+  --color-success: #16a34a;
+  --color-success-surface: #ecfdf3;
+  --color-danger: #dc2626;
+  --color-danger-surface: #fef2f2;
+  --color-warning: #d97706;
+  --color-warning-surface: #fffbeb;
 }
 
 body {
   font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-neutral);
+  background: var(--color-page);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

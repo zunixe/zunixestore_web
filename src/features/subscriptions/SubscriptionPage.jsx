@@ -1,7 +1,22 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Check } from 'lucide-react';
 import { fetchPlans, fetchSubscription, subscribe } from './subscriptionSlice';
-import { formatCurrency } from '../../utils/formatters';
+import {
+  PageHeader, Card, Button, Badge, formatRp,
+} from '../../components/ui';
+
+const FALLBACK_PLANS = {
+  basic: { name: 'Basic', price: 0 },
+  pro: { name: 'Pro', price: 99000 },
+  enterprise: { name: 'Enterprise', price: 299000 },
+};
+
+const PLAN_FEATURES = {
+  basic: ['Dashboard', 'Pesanan', 'Produk', 'Customer'],
+  pro: ['Semua fitur Basic', 'Analytics Advanced'],
+  enterprise: ['Semua fitur Pro', 'Kustomisasi', 'Akses API'],
+};
 
 export default function SubscriptionPage() {
   const dispatch = useDispatch();
@@ -9,62 +24,72 @@ export default function SubscriptionPage() {
   const { plans, current } = useSelector((s) => s.subscriptions);
 
   useEffect(() => {
-    dispatch(fetchPlans());
-    if (currentStore) dispatch(fetchSubscription(currentStore.id));
+    if (currentStore) {
+      dispatch(fetchPlans(currentStore.id));
+      dispatch(fetchSubscription(currentStore.id));
+    }
   }, [dispatch, currentStore]);
 
   const handleSubscribe = (planKey) => {
+    if (!currentStore) return;
     dispatch(subscribe({ storeId: currentStore.id, plan: { plan: planKey } }));
   };
 
+  const planList = Object.entries(Object.keys(plans || {}).length ? plans : FALLBACK_PLANS);
+  const statusTone = current?.status === 'active' ? 'success' : 'muted';
+
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 mb-2">Langganan</h2>
-      <p className="text-sm text-gray-500 mb-6">Pilih paket langganan yang sesuai untuk toko Anda</p>
+      <PageHeader title="Paket Langganan" subtitle="Pilih paket langganan yang sesuai untuk toko Anda" />
 
       {current && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between">
+        <Card className="mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm text-gray-500">Paket Saat Ini</p>
-              <p className="text-xl font-bold text-gray-900 capitalize">{current.plan}</p>
-              <p className="text-xs text-gray-500 mt-1">Berlaku sampai {current.end_date ? new Date(current.end_date).toLocaleDateString('id-ID') : '-'}</p>
+              <p className="text-xs text-subdued font-[family-name:var(--font-label)]">Paket Saat Ini</p>
+              <p className="text-xl font-bold text-neutral capitalize mt-0.5">{current.plan}</p>
+              <p className="text-xs text-subdued mt-1">
+                Berlaku sampai {current.end_date ? new Date(current.end_date).toLocaleDateString('id-ID') : '-'}
+              </p>
             </div>
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold capitalize">{current.status}</span>
+            {current.status && <Badge tone={statusTone} className="capitalize">{current.status === 'active' ? 'Aktif' : current.status}</Badge>}
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
-        {Object.entries(plans).length === 0 ? (
-          <div className="col-span-3 grid grid-cols-3 gap-4">
-            {[
-              { key: 'basic', name: 'Basic', price: 0, desc: 'Dashboard, Pesanan, Produk, Customer' },
-              { key: 'pro', name: 'Pro', price: 99000, desc: 'Semua fitur + Analytics Advanced' },
-              { key: 'enterprise', name: 'Enterprise', price: 299000, desc: 'Semua fitur + Custom + API' },
-            ].map((plan) => (
-              <div key={plan.key} className="bg-white rounded-xl shadow-sm p-6 text-center">
-                <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
-                <p className="text-3xl font-bold text-gray-900 my-3">{plan.price === 0 ? 'Gratis' : formatCurrency(plan.price)}<span className="text-sm font-normal text-gray-500">/bulan</span></p>
-                <p className="text-sm text-gray-500 mb-6">{plan.desc}</p>
-                <button onClick={() => handleSubscribe(plan.key)} className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium">
-                  {current?.plan === plan.key ? 'Paket Saat Ini' : 'Pilih Paket'}
-                </button>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {planList.map(([key, plan]) => {
+          const isCurrent = current?.plan === key;
+          const features = Array.isArray(plan.features) && plan.features.length ? plan.features : PLAN_FEATURES[key] || [];
+          return (
+            <Card key={key} className={`flex flex-col border ${isCurrent ? 'border-primary' : 'border-transparent'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-base font-bold text-neutral">{plan.name}</h2>
+                {isCurrent && <Badge tone="primary">Paket Saat Ini</Badge>}
               </div>
-            ))}
-          </div>
-        ) : (
-          Object.entries(plans).map(([key, plan]) => (
-            <div key={key} className="bg-white rounded-xl shadow-sm p-6 text-center">
-              <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
-              <p className="text-3xl font-bold text-gray-900 my-3">{plan.price === 0 ? 'Gratis' : formatCurrency(plan.price)}<span className="text-sm font-normal text-gray-500">/bulan</span></p>
-              <p className="text-sm text-gray-500 mb-6">{plan.features?.join(', ')}</p>
-              <button onClick={() => handleSubscribe(key)} className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium">
-                {current?.plan === key ? 'Paket Saat Ini' : 'Pilih Paket'}
-              </button>
-            </div>
-          ))
-        )}
+              <p className="text-2xl font-bold text-neutral mt-3 tabular-nums">
+                {Number(plan.price) === 0 ? 'Gratis' : formatRp(plan.price)}
+                <span className="text-sm font-normal text-subdued">/bulan</span>
+              </p>
+              <ul className="mt-4 space-y-2 flex-1">
+                {features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-neutral">
+                    <Check className="w-4 h-4 text-success mt-0.5 shrink-0" aria-hidden="true" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                variant={isCurrent ? 'secondary' : 'primary'}
+                className="w-full mt-5"
+                disabled={isCurrent || !currentStore}
+                onClick={() => handleSubscribe(key)}
+              >
+                {isCurrent ? 'Paket Saat Ini' : 'Pilih Paket'}
+              </Button>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

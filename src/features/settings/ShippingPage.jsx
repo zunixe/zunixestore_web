@@ -1,78 +1,87 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { Truck } from 'lucide-react';
 import SettingsPageLayout from './SettingsPageLayout';
 import api from '../../utils/api';
-import { useSelector } from 'react-redux';
+import { SettingsSection, Toggle } from '../../components/ui';
+import { SaveStatus } from '../product-preferences/ProductParts';
 
 const COURIERS = [
-  { key: 'jne', name: 'JNE', desc: 'Reguler, OKE, YES, Trucking', icon: 'M4 2h12a2 2 0 012 2v1h1a2 2 0 012 2v6a2 2 0 01-2 2h-1a2 2 0 01-4 0H8a2 2 0 01-4 0H3a2 2 0 01-2-2V4a2 2 0 012-2z' },
-  { key: 'jnt', name: 'J&T', desc: 'Reguler, Economy, Express', icon: 'M4 2h12a2 2 0 012 2v1h1a2 2 0 012 2v6a2 2 0 01-2 2h-1a2 2 0 01-4 0H8a2 2 0 01-4 0H3a2 2 0 01-2-2V4a2 2 0 012-2z' },
-  { key: 'sicepat', name: 'SiCepat', desc: 'REG, BEST, HALU', icon: 'M4 2h12a2 2 0 012 2v1h1a2 2 0 012 2v6a2 2 0 01-2 2h-1a2 2 0 01-4 0H8a2 2 0 01-4 0H3a2 2 0 01-2-2V4a2 2 0 012-2z' },
-  { key: 'anteraja', name: 'AnterAja', desc: 'Same Day, Reguler', icon: 'M4 2h12a2 2 0 012 2v1h1a2 2 0 012 2v6a2 2 0 01-2 2h-1a2 2 0 01-4 0H8a2 2 0 01-4 0H3a2 2 0 01-2-2V4a2 2 0 012-2z' },
-  { key: 'gosend', name: 'GoSend', desc: 'Instant, Same Day', icon: 'M4 2h12a2 2 0 012 2v1h1a2 2 0 012 2v6a2 2 0 01-2 2h-1a2 2 0 01-4 0H8a2 2 0 01-4 0H3a2 2 0 01-2-2V4a2 2 0 012-2z' },
+  { key: 'jne', name: 'JNE', desc: 'Reguler, OKE, YES, Trucking' },
+  { key: 'jnt', name: 'J&T', desc: 'Reguler, Economy, Express' },
+  { key: 'sicepat', name: 'SiCepat', desc: 'REG, BEST, HALU' },
+  { key: 'anteraja', name: 'AnterAja', desc: 'Same Day, Reguler' },
+  { key: 'gosend', name: 'GoSend', desc: 'Instant, Same Day' },
 ];
 
 export default function ShippingPage() {
   const { currentStore } = useSelector((s) => s.stores);
-  const [enabled, setEnabled] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const storeId = currentStore?.id;
+  const [data, setData] = useState({ storeId: null, enabled: {} });
+  const [status, setStatus] = useState({ type: 'idle', message: '' });
 
-  const load = useCallback(async () => {
-    if (!currentStore) return;
-    try {
-      const res = await api.get(`/stores/${currentStore.id}/settings`);
-      setEnabled({
-        jne: res.data?.shipping_jne === 'true',
-        jnt: res.data?.shipping_jnt === 'true',
-        sicepat: res.data?.shipping_sicepat === 'true',
-        anteraja: res.data?.shipping_anteraja === 'true',
-        gosend: res.data?.shipping_gosend === 'true',
-      });
-    } catch {}
-    setLoading(false);
-  }, [currentStore]);
+  useEffect(() => {
+    if (!storeId) return undefined;
+    let cancelled = false;
+    api.get(`/stores/${storeId}/settings`)
+      .then((res) => {
+        if (cancelled) return;
+        const enabled = {};
+        COURIERS.forEach((c) => { enabled[c.key] = res.data?.[`shipping_${c.key}`] === 'true'; });
+        setData({ storeId, enabled });
+      })
+      .catch(() => { if (!cancelled) setData({ storeId, enabled: {} }); });
+    return () => { cancelled = true; };
+  }, [storeId]);
 
-  useEffect(() => { load(); }, [load]);
+  const loading = !!storeId && data.storeId !== storeId;
+  const { enabled } = data;
+  const activeCount = COURIERS.filter((c) => enabled[c.key]).length;
 
   const toggle = async (key) => {
+    if (status.type === 'saving') return;
+    const prev = enabled;
     const next = { ...enabled, [key]: !enabled[key] };
-    setEnabled(next);
-    setSaving(true);
+    setData((d) => ({ ...d, enabled: next }));
+    setStatus({ type: 'saving', message: '' });
     try {
       const body = {};
-      for (const k of Object.keys(next)) body[`shipping_${k}`] = String(next[k]);
-      await api.put(`/stores/${currentStore.id}/settings`, body);
-    } catch {}
-    setSaving(false);
+      COURIERS.forEach((c) => { body[`shipping_${c.key}`] = String(!!next[c.key]); });
+      await api.put(`/stores/${storeId}/settings`, body);
+      setStatus({ type: 'saved', message: 'Perubahan tersimpan' });
+    } catch (err) {
+      setData((d) => ({ ...d, enabled: prev }));
+      setStatus({ type: 'error', message: err.message || 'Gagal menyimpan' });
+    }
   };
 
   return (
-    <SettingsPageLayout title="Metode Pengiriman" desc="Tentukan metode pengiriman yang dapat dipilih customer.">
-      {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-          <p className="text-sm text-gray-400">Memuat...</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {COURIERS.map((courier) => (
-            <div key={courier.key} className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100">
-              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-orange-600" viewBox="0 0 24 24" fill="currentColor">
-                  <path d={courier.icon} />
-                </svg>
+    <SettingsPageLayout
+      title="Metode Pengiriman"
+      desc="Tentukan metode pengiriman yang dapat dipilih customer."
+      actions={<SaveStatus status={status} />}
+    >
+      <SettingsSection
+        title="Kurir"
+        description={`Aktifkan kurir yang bisa dipilih customer saat checkout. ${loading ? '' : `${activeCount} dari ${COURIERS.length} kurir aktif.`}`}
+      >
+        <div className="bg-white rounded-xl px-4 divide-y divide-divider">
+          {loading ? (
+            <div className="space-y-3 py-4" aria-busy="true">
+              {COURIERS.map((c) => <div key={c.key} className="h-12 rounded-lg bg-gray-100 animate-pulse" />)}
+            </div>
+          ) : COURIERS.map(({ key, name, desc }) => (
+            <div key={key} className="flex items-start gap-3 py-4">
+              <span className="w-10 h-10 rounded-full bg-primary-surface flex items-center justify-center shrink-0">
+                <Truck className="w-[18px] h-[18px] text-primary" aria-hidden="true" />
+              </span>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <Toggle id={`ship-${key}`} label={name} description={desc} checked={!!enabled[key]} onChange={() => toggle(key)} />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">{courier.name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{courier.desc}</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={!!enabled[courier.key]} onChange={() => toggle(courier.key)} disabled={saving} className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
-              </label>
             </div>
           ))}
         </div>
-      )}
+      </SettingsSection>
     </SettingsPageLayout>
   );
 }

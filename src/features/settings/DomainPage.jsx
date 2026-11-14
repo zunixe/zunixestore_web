@@ -1,84 +1,140 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import SettingsPageLayout from './SettingsPageLayout';
 import api from '../../utils/api';
+import { SettingsSection, SettingsCard, TextInput, Button, Badge } from '../../components/ui';
+import { SaveStatus } from '../product-preferences/ProductParts';
+
+const TITLE_MAX = 70;
+const DESC_MAX = 160;
 
 export default function DomainPage() {
   const { currentStore } = useSelector((s) => s.stores);
-  const [customDomain, setCustomDomain] = useState('');
-  const [metaTitle, setMetaTitle] = useState('');
-  const [metaDesc, setMetaDesc] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const storeId = currentStore?.id;
+  const location = useLocation();
+  const [form, setForm] = useState({ storeId: null, custom_domain: '', meta_title: '', meta_description: '' });
+  const [status, setStatus] = useState({ type: 'idle', message: '' });
+  const timer = useRef(null);
 
-  const load = useCallback(async () => {
-    if (!currentStore) return;
-    try {
-      const res = await api.get(`/stores/${currentStore.id}/settings`);
-      setCustomDomain(res.data?.custom_domain || '');
-      setMetaTitle(res.data?.meta_title || '');
-      setMetaDesc(res.data?.meta_description || '');
-    } catch {}
-    setLoading(false);
-  }, [currentStore]);
+  useEffect(() => {
+    if (!storeId) return undefined;
+    let cancelled = false;
+    api.get(`/stores/${storeId}/settings`)
+      .then((res) => {
+        if (cancelled) return;
+        setForm({
+          storeId,
+          custom_domain: res.data?.custom_domain || '',
+          meta_title: res.data?.meta_title || '',
+          meta_description: res.data?.meta_description || '',
+        });
+      })
+      .catch(() => { if (!cancelled) setForm((f) => ({ ...f, storeId })); });
+    return () => { cancelled = true; };
+  }, [storeId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const loading = !!storeId && form.storeId !== storeId;
+
+  // Lompat ke seksi SEO saat dibuka dari /settings/domain#seo.
+  useEffect(() => {
+    if (loading || !location.hash) return;
+    document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [loading, location.hash]);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSave = async () => {
-    setSaving(true);
+    if (!storeId) return;
+    setStatus({ type: 'saving', message: '' });
     try {
-      await api.put(`/stores/${currentStore.id}/settings`, {
-        custom_domain: customDomain,
-        meta_title: metaTitle,
-        meta_description: metaDesc,
+      await api.put(`/stores/${storeId}/settings`, {
+        custom_domain: form.custom_domain.trim(),
+        meta_title: form.meta_title,
+        meta_description: form.meta_description,
       });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {}
-    setSaving(false);
+      setStatus({ type: 'saved', message: 'Tersimpan' });
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setStatus({ type: 'idle', message: '' }), 2500);
+    } catch (err) {
+      setStatus({ type: 'error', message: err.message || 'Gagal menyimpan' });
+    }
   };
 
+  const saving = status.type === 'saving';
+  const defaultHost = currentStore?.slug ? `${currentStore.slug}.zunixe.com` : '';
+  const host = form.custom_domain.trim() || currentStore?.domain || defaultHost;
+
   return (
-    <SettingsPageLayout title="Domain & SEO" desc="Atur URL & SEO toko kamu.">
-      {loading ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-          <p className="text-sm text-gray-400">Memuat...</p>
+    <SettingsPageLayout title="Domain & SEO" desc="Atur URL & SEO toko kamu." actions={<SaveStatus status={status} />}>
+      <div className={`divide-y divide-divider ${loading ? 'opacity-60 pointer-events-none' : ''}`} aria-busy={loading}>
+        <div id="domain" className="scroll-mt-20">
+          <SettingsSection title="Domain Kustom" description="Hubungkan domain kustom untuk toko kamu (contoh: tokokamu.com).">
+            <SettingsCard>
+              {defaultHost && (
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-subdued">Domain bawaan</span>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="text-neutral truncate">{defaultHost}</span>
+                    <Badge tone="success">Aktif</Badge>
+                  </span>
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                <TextInput
+                  id="custom-domain"
+                  label="Domain kustom"
+                  value={form.custom_domain}
+                  onChange={set('custom_domain')}
+                  placeholder="namatoko.com"
+                  className="flex-1"
+                />
+                <Button onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Hubungkan'}</Button>
+              </div>
+            </SettingsCard>
+          </SettingsSection>
         </div>
-      ) : (
-        <>
-          <div className="mb-6">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Domain Kustom</h4>
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
-              <p className="text-xs text-gray-500 mb-3">Hubungkan domain kustom untuk toko kamu (contoh: tokokamu.com).</p>
-              <div className="flex gap-2">
-                <input type="text" value={customDomain} onChange={(e) => setCustomDomain(e.target.value)} placeholder="namatoko.com" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
-                <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                  {saving ? 'Menyimpan...' : 'Hubungkan'}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">SEO Toko</h4>
-            <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-4">
+
+        <div id="seo" className="scroll-mt-20">
+          <SettingsSection title="SEO (Search Engine Optimization)" description="Judul dan deskripsi halaman yang tampil di hasil pencarian.">
+            <SettingsCard>
+              <TextInput
+                id="meta-title"
+                label="Judul SEO (meta title)"
+                value={form.meta_title}
+                onChange={set('meta_title')}
+                maxLength={TITLE_MAX}
+                placeholder={currentStore?.name || 'Nama toko'}
+                hint={`${form.meta_title.length}/${TITLE_MAX}`}
+              />
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Meta Title</label>
-                <input type="text" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} placeholder="ZunixeStore - Toko Online Terpercaya" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
+                <label htmlFor="meta-description" className="block text-sm font-medium text-neutral mb-1.5">Deskripsi SEO (meta description)</label>
+                <textarea
+                  id="meta-description"
+                  rows={3}
+                  value={form.meta_description}
+                  onChange={set('meta_description')}
+                  maxLength={DESC_MAX}
+                  placeholder="Deskripsi singkat tentang toko kamu untuk hasil pencarian."
+                  className="w-full px-3 py-2 rounded-md border border-divider text-sm bg-white focus:outline-none focus:border-primary resize-none"
+                />
+                <p className="text-xs text-subdued mt-1.5">{form.meta_description.length}/{DESC_MAX}</p>
               </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Meta Description</label>
-                <textarea rows={3} value={metaDesc} onChange={(e) => setMetaDesc(e.target.value)} placeholder="Deskripsi singkat tentang toko kamu untuk hasil pencarian." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 resize-none" />
+              <div className="rounded-lg border border-divider p-3">
+                <p className="text-xs text-subdued mb-2">Pratinjau hasil pencarian</p>
+                <p className="text-xs text-success truncate">{host || 'domain-toko'}</p>
+                <p className="text-base text-primary leading-6 truncate">{form.meta_title || currentStore?.name || 'Judul halaman toko'}</p>
+                <p className="text-xs text-subdued leading-5 line-clamp-2">{form.meta_description || 'Deskripsi toko akan tampil di sini.'}</p>
               </div>
               <div className="flex justify-end">
-                <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                  {saving ? 'Menyimpan...' : saved ? 'Tersimpan' : 'Simpan SEO'}
-                </button>
+                <Button onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan SEO'}</Button>
               </div>
-            </div>
-          </div>
-        </>
-      )}
+            </SettingsCard>
+          </SettingsSection>
+        </div>
+      </div>
     </SettingsPageLayout>
   );
 }

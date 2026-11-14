@@ -43,6 +43,27 @@ import FacebookCatalogPage from '../features/facebook-catalog/FacebookCatalogPag
 import MultiLanguagePage from '../features/multi-language/MultiLanguagePage';
 import WhatsappLandingPage from '../features/whatsapp-landing/WhatsappLandingPage';
 import WalletReportPage from '../features/wallet/WalletReportPage';
+import PendingPaymentPage from '../features/orders/PendingPaymentPage';
+import PendingShippingPage from '../features/orders/PendingShippingPage';
+import OrderPreferencesPage from '../features/orders/OrderPreferencesPage';
+import OpenOrderPage from '../features/orders/OpenOrderPage';
+import ShipmentPromotionsPage from '../features/discounts/ShipmentPromotionsPage';
+import BuyerGroupsPage from '../features/customers/BuyerGroupsPage';
+import RatingsPage from '../features/customers/RatingsPage';
+import LoyaltyPage from '../features/customers/LoyaltyPage';
+import CustomerPreferencesPage from '../features/customers/CustomerPreferencesPage';
+import BuyerNotificationsPage from '../features/customers/BuyerNotificationsPage';
+import CustomPagesPage from '../features/store-design/CustomPagesPage';
+import MediaGalleryPage from '../features/store-design/MediaGalleryPage';
+import BlogPage from '../features/store-design/BlogPage';
+import FaqPage from '../features/store-design/FaqPage';
+import TestimonialsPage from '../features/store-design/TestimonialsPage';
+import ReportsPage from '../features/analytics/ReportsPage';
+import RealtimePage from '../features/analytics/RealtimePage';
+import WishlistReportPage from '../features/analytics/WishlistReportPage';
+import LoyaltyAnalyticsPage from '../features/analytics/LoyaltyAnalyticsPage';
+import MarketingToolsPage from '../features/analytics/MarketingToolsPage';
+import AffiliatePage from '../features/analytics/AffiliatePage';
 
 export default function AppRoutes() {
   return (
@@ -101,6 +122,33 @@ export default function AppRoutes() {
           <Route path="/facebook-catalog/setup" element={<FacebookCatalogPage />} />
           <Route path="/apps/localizations/products" element={<MultiLanguagePage />} />
           <Route path="/whatsapp-landing-pages" element={<WhatsappLandingPage />} />
+
+          {/* Pesanan */}
+          <Route path="/pending/payment" element={<PendingPaymentPage />} />
+          <Route path="/pending/shipping" element={<PendingShippingPage />} />
+          <Route path="/preferences/orders" element={<OrderPreferencesPage />} />
+          <Route path="/open-order" element={<OpenOrderPage />} />
+          {/* Diskon */}
+          <Route path="/shipment-promotions" element={<ShipmentPromotionsPage />} />
+          {/* Customer */}
+          <Route path="/buyer-groups" element={<BuyerGroupsPage />} />
+          <Route path="/ratings" element={<RatingsPage />} />
+          <Route path="/loyalty" element={<LoyaltyPage />} />
+          <Route path="/preferences/checkout" element={<CustomerPreferencesPage />} />
+          <Route path="/preferences/buyer-notifications" element={<BuyerNotificationsPage />} />
+          {/* Desain Toko */}
+          <Route path="/shop/pages" element={<CustomPagesPage />} />
+          <Route path="/preferences/asset-manager" element={<MediaGalleryPage />} />
+          <Route path="/news" element={<BlogPage />} />
+          <Route path="/preferences/faqs" element={<FaqPage />} />
+          <Route path="/testimonials" element={<TestimonialsPage />} />
+          {/* Analitik & Marketing */}
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/analytics/realtime" element={<RealtimePage />} />
+          <Route path="/analytics/wishlist" element={<WishlistReportPage />} />
+          <Route path="/loyalty/analytics" element={<LoyaltyAnalyticsPage />} />
+          <Route path="/preferences/marketing" element={<MarketingToolsPage />} />
+          <Route path="/affiliate-links" element={<AffiliatePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

@@ -17,25 +17,16 @@ export default function Layout() {
     }
   }, [dispatch, isAuthenticated]);
 
-  useEffect(() => {
-    const handleClick = () => {
-      const dd = document.querySelector('.user-dropdown-open');
-      if (dd) dd.classList.remove('user-dropdown-open');
-    };
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-[#eff3f8]">
+    <div className="min-h-screen bg-page">
       <Topbar />
       <div className="flex">
         <Sidebar />
-        <div className="flex-1 flex justify-center p-6 min-h-[calc(100vh-64px)]">
-          <div className="w-full max-w-[1200px]">
+        <main className="flex-1 min-w-0 flex justify-center px-4 py-6 lg:px-6 min-h-[calc(100vh-68px)]">
+          <div className="w-full max-w-[1280px]">
             <Outlet />
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

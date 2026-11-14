@@ -11,6 +11,11 @@ export default function ProductAddPage() {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState('toko');
   const [showMore, setShowMore] = useState(false);
+  const [mediaTab, setMediaTab] = useState('gambar');
+  const [medias, setMedias] = useState([]);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [youtubeVideoUrl, setYoutubeVideoUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     name: '', sku: '', barcode: '', price: '', retail_price: '', cost_price: '',
     stock: '0', weight: '500', length: '', width: '', height: '',
@@ -30,6 +35,53 @@ export default function ProductAddPage() {
 
   const handleSelect = (field) => (val) => setForm({ ...form, [field]: val });
 
+  const API_BASE = 'http://localhost:3000/api';
+
+  const uploadMedia = async (file) => {
+    setUploading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Upload gagal');
+      return data.data;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    console.log('handleImageUpload triggered', e.target.files.length, 'files');
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+      try {
+        const result = await uploadMedia(file);
+        setMedias((prev) => [...prev, result.url]);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    e.target.value = '';
+  };
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const result = await uploadMedia(file);
+      setVideoUrl(result.url);
+    } catch (err) {
+      console.error(err);
+    }
+    e.target.value = '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!currentStore) return;
@@ -40,28 +92,29 @@ export default function ProductAddPage() {
         name: form.name, sku: form.sku,
         price: Number(form.price), stock: Number(form.stock),
         status: form.status, category: form.category,
-        description: JSON.stringify({
-          text: form.description, short_desc: form.short_desc, barcode: form.barcode,
-          retail_price: form.retail_price ? Number(form.retail_price) : null,
-          cost_price: form.cost_price ? Number(form.cost_price) : null,
-          weight: Number(form.weight),
-          dimensions: form.length ? { length: Number(form.length), width: Number(form.width), height: Number(form.height) } : null,
-          min_order: form.min_order ? Number(form.min_order) : null,
-          max_order: form.max_order ? Number(form.max_order) : null,
-          bundle_qty: form.bundle_qty ? Number(form.bundle_qty) : null,
-          shipping_time: Number(form.shipping_time), shipping_unit: form.shipping_unit,
-          custom_label: form.custom_label, availability: form.availability,
-          out_of_stock: form.out_of_stock, digital_product: form.digital_product,
-          interest_count: form.interest_count, audience: form.audience,
-          schedule_display: form.schedule_display, schedule_launch: form.schedule_launch,
-        }),
+          description: JSON.stringify({
+            text: form.description, short_desc: form.short_desc, barcode: form.barcode,
+            retail_price: form.retail_price ? Number(form.retail_price) : null,
+            cost_price: form.cost_price ? Number(form.cost_price) : null,
+            weight: Number(form.weight),
+            dimensions: form.length ? { length: Number(form.length), width: Number(form.width), height: Number(form.height) } : null,
+            min_order: form.min_order ? Number(form.min_order) : null,
+            max_order: form.max_order ? Number(form.max_order) : null,
+            bundle_qty: form.bundle_qty ? Number(form.bundle_qty) : null,
+            shipping_time: Number(form.shipping_time), shipping_unit: form.shipping_unit,
+            custom_label: form.custom_label, availability: form.availability,
+            out_of_stock: form.out_of_stock, digital_product: form.digital_product,
+            interest_count: form.interest_count, audience: form.audience,
+            schedule_display: form.schedule_display, schedule_launch: form.schedule_launch,
+            images: medias, video: videoUrl, youtube: youtubeVideoUrl,
+          }),
       },
     }));
     setSaving(false);
     navigate('/products');
   };
 
-  const inputClass = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 bg-white';
+  const inputClass = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 bg-white';
   const labelClass = 'block text-xs font-medium text-gray-600 mb-1';
   const sectionCard = 'bg-white rounded-xl border border-gray-100 p-5';
   const sectionTitle = 'text-sm font-semibold text-gray-900';
@@ -72,7 +125,7 @@ export default function ProductAddPage() {
       <div className={sectionCard}>
         <div className="flex items-center justify-between">
           <h3 className={sectionTitle}>{title}</h3>
-          <button type="button" onClick={() => setOpen(!open)} className="flex items-center gap-1 text-sm text-blue-600 font-medium hover:text-blue-700">
+          <button type="button" onClick={() => setOpen(!open)} className="flex items-center gap-1 text-sm text-primary font-medium hover:text-primary-hover">
             {open ? 'Tutup' : 'Selengkapnya'}
             <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
@@ -96,15 +149,15 @@ export default function ProductAddPage() {
         <h2 className="text-lg font-semibold text-gray-900">Tambah Produk</h2>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => navigate('/products')} className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors">Batal</button>
-          <button type="submit" disabled={saving || !form.name || !form.price} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+          <button type="submit" disabled={saving || !form.name || !form.price} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-hover disabled:opacity-50 transition-colors">
             {saving ? 'Menyimpan...' : 'Simpan'}
           </button>
         </div>
       </div>
 
       <div className="flex items-center gap-1 mb-6">
-        <button type="button" onClick={() => setTab('toko')} className={`px-4 py-2 text-sm rounded-lg transition-colors ${tab === 'toko' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}>Toko</button>
-        <button type="button" onClick={() => setTab('umum')} className={`px-4 py-2 text-sm rounded-lg transition-colors ${tab === 'umum' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}>Umum</button>
+        <button type="button" onClick={() => setTab('toko')} className={`px-4 py-2 text-sm rounded-lg transition-colors ${tab === 'toko' ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'}`}>Toko</button>
+        <button type="button" onClick={() => setTab('umum')} className={`px-4 py-2 text-sm rounded-lg transition-colors ${tab === 'umum' ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'}`}>Umum</button>
       </div>
 
       <div className="grid grid-cols-[1fr_400px] gap-5">
@@ -115,25 +168,78 @@ export default function ProductAddPage() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className={sectionTitle}>Media *</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Images (0/20) • Video (0/1) • Youtube URL (0/1)</p>
+                <p className="text-xs text-gray-400 mt-0.5">Images ({medias.length}/20) • Video ({videoUrl ? 1 : 0}/1) • Youtube URL ({youtubeVideoUrl ? 1 : 0}/1)</p>
               </div>
             </div>
             <div className="flex gap-3">
-              <div className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
-                <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" /></svg>
-                <span className="text-sm text-gray-700">Gambar</span>
-                <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z" /></svg>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
-                <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" /></svg>
-                <span className="text-sm text-gray-700">Video</span>
-                <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z" /></svg>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-3 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
-                <svg className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" /></svg>
-                <span className="text-sm text-gray-700">Youtube</span>
-                <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z" /></svg>
-              </div>
+              {[
+                { key: 'gambar', icon: 'M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z', label: 'Gambar' },
+                { key: 'video', icon: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z', label: 'Video' },
+                { key: 'youtube', icon: 'M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c-.86-.23-1.54-.91-1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z', label: 'Youtube', color: 'text-red-500' },
+              ].map((item) => (
+                <button key={item.key} type="button" onClick={() => setMediaTab(item.key)} className={`flex items-center gap-2 px-4 py-3 border rounded-lg transition-all ${mediaTab === item.key ? 'border-primary bg-primary-surface' : 'border-gray-200 hover:border-primary hover:bg-primary-surface'}`}>
+                  <svg className={`w-5 h-5 ${item.color || 'text-primary'}`} viewBox="0 0 24 24" fill="currentColor"><path d={item.icon} /></svg>
+                  <span className="text-sm text-gray-700">{item.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-4">
+              {mediaTab === 'gambar' && (
+                <div>
+                  {medias.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2 mb-3">
+                      {medias.map((url, idx) => (
+                        <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => setMedias((prev) => prev.filter((_, i) => i !== idx))} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <input id="media-image" type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  <label htmlFor="media-image" className={`flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <svg className="w-8 h-8 text-gray-300 mb-2" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" /></svg>
+                    <span className="text-sm text-gray-400">{uploading ? 'Mengupload...' : 'Klik untuk upload gambar'}</span>
+                    <span className="text-xs text-gray-300 mt-1">PNG, JPG, GIF, WebP (maks. 5MB)</span>
+                    <button type="button" className="mt-2 text-xs text-primary underline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); document.getElementById('media-image').click(); }}>atau klik di sini</button>
+                  </label>
+                </div>
+              )}
+              {mediaTab === 'video' && (
+                <div>
+                  {videoUrl && (
+                    <div className="relative mb-3 aspect-video rounded-lg overflow-hidden border border-gray-200 bg-black">
+                      <video src={videoUrl} controls className="w-full h-full" />
+                      <button type="button" onClick={() => setVideoUrl('')} className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center shadow">×</button>
+                    </div>
+                  )}
+                  <input id="media-video" type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} disabled={uploading} />
+                  <label htmlFor="media-video" className={`flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-primary transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <svg className="w-8 h-8 text-gray-300 mb-2" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" /></svg>
+                    <span className="text-sm text-gray-400">{uploading ? 'Mengupload...' : 'Klik untuk upload video'}</span>
+                    <span className="text-xs text-gray-300 mt-1">MP4, WebM (maks. 20MB)</span>
+                  </label>
+                </div>
+              )}
+              {mediaTab === 'youtube' && (
+                <div className="space-y-3">
+                  <input type="url" value={youtubeVideoUrl} onChange={(e) => setYoutubeVideoUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary" />
+                  {youtubeVideoUrl && (() => {
+                    try {
+                      const u = new URL(youtubeVideoUrl);
+                      const v = u.searchParams.get('v');
+                      if (!v) return <p className="text-xs text-red-500">URL YouTube tidak valid</p>;
+                      return (
+                        <div className="aspect-video rounded-lg overflow-hidden border border-gray-200 bg-black">
+                          <iframe src={`https://www.youtube.com/embed/${v}`} className="w-full h-full" allowFullScreen title="YouTube video" />
+                        </div>
+                      );
+                    } catch {
+                      return <p className="text-xs text-red-500">URL YouTube tidak valid</p>;
+                    }
+                  })()}
+                </div>
+              )}
             </div>
           </div>
 
@@ -167,7 +273,7 @@ export default function ProductAddPage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className={labelClass}>Deskripsi</label>
-                  <span className="text-xs text-blue-600 cursor-pointer hover:text-blue-700">Edit HTML</span>
+                  <span className="text-xs text-primary cursor-pointer hover:text-primary-hover">Edit HTML</span>
                 </div>
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <div className="flex items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200 flex-wrap">
@@ -204,11 +310,11 @@ export default function ProductAddPage() {
               </div>
               <div className="flex items-center gap-6">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.schedule_display} onChange={handleChange('schedule_display')} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  <input type="checkbox" checked={form.schedule_display} onChange={handleChange('schedule_display')} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
                   <span className="text-sm text-gray-700">Tentukan tanggal ditampilkan</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.schedule_launch} onChange={handleChange('schedule_launch')} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  <input type="checkbox" checked={form.schedule_launch} onChange={handleChange('schedule_launch')} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
                   <span className="text-sm text-gray-700">Atur tanggal rilis</span>
                 </label>
               </div>
@@ -219,7 +325,7 @@ export default function ProductAddPage() {
           <div className={sectionCard}>
             <h3 className={`${sectionTitle} mb-4`}>Manajemen Produk</h3>
             <div className="space-y-4">
-              <p className="text-xs text-blue-600">Kamu dapat mengelola stok produk kamu saat atur Ketersediaan Produk ke 'Gunakan Stok'.</p>
+              <p className="text-xs text-primary">Kamu dapat mengelola stok produk kamu saat atur Ketersediaan Produk ke 'Gunakan Stok'.</p>
               <div>
                 <label className={labelClass}>Ketersediaan Produk</label>
                 <DropdownSelect value={form.availability} onChange={handleSelect('availability')} options={[
@@ -232,7 +338,7 @@ export default function ProductAddPage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className={labelClass}>Pengaturan Stok</label>
-                    <span className="text-xs text-blue-600 cursor-pointer">Lihat riwayat inventaris</span>
+                    <span className="text-xs text-primary cursor-pointer">Lihat riwayat inventaris</span>
                   </div>
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
                     <table className="w-full">
@@ -246,7 +352,7 @@ export default function ProductAddPage() {
                         <tr className="border-t border-gray-100">
                           <td className="px-3 py-2 text-sm text-gray-700">{currentStore?.name || 'Toko'}</td>
                           <td className="px-3 py-2">
-                            <input type="number" value={form.stock} onChange={handleChange('stock')} className="w-24 px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:border-blue-400" />
+                            <input type="number" value={form.stock} onChange={handleChange('stock')} className="w-24 px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:border-primary" />
                           </td>
                         </tr>
                       </tbody>
@@ -293,7 +399,7 @@ export default function ProductAddPage() {
             <h3 className={`${sectionTitle} mb-4`}>Detail Produk</h3>
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <input type="checkbox" checked={form.digital_product} onChange={handleChange('digital_product')} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <input type="checkbox" checked={form.digital_product} onChange={handleChange('digital_product')} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
                 <label className="text-sm text-gray-700">Produk Digital</label>
                 <svg className="w-4 h-4 text-gray-400 cursor-pointer" viewBox="0 0 24 24" fill="currentColor"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></svg>
               </div>
@@ -387,7 +493,7 @@ export default function ProductAddPage() {
             </>
           )}
 
-          <button type="button" onClick={() => setShowMore(!showMore)} className="flex items-center gap-2 text-sm text-blue-600 font-medium hover:text-blue-700">
+          <button type="button" onClick={() => setShowMore(!showMore)} className="flex items-center gap-2 text-sm text-primary font-medium hover:text-primary-hover">
             {showMore ? 'Tampilkan Sebagian Pilihan Saja' : 'Lihat pilihan lain'}
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />

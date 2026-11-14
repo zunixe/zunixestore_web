@@ -10,6 +10,11 @@ export const activateTheme = createAsyncThunk('themes/activate', async ({ storeI
   catch (err) { return rejectWithValue(err.message); }
 });
 
+export const updateThemeConfig = createAsyncThunk('themes/updateConfig', async ({ storeId, themeId, config }, { rejectWithValue }) => {
+  try { await api.put(`/stores/${storeId}/theme/config`, { config }); return { themeId, config }; }
+  catch (err) { return rejectWithValue(err.message); }
+});
+
 const themesSlice = createSlice({
   name: 'themes',
   initialState: { themes: [], activeTheme: null, isLoading: false, error: null },
@@ -22,9 +27,16 @@ const themesSlice = createSlice({
         s.activeTheme = s.themes.find(t => t.is_active) || s.themes[0] || null;
       })
       .addCase(fetchThemes.rejected, (s, a) => { s.isLoading = false; s.error = a.payload; })
+      .addCase(activateTheme.pending, (s) => { s.error = null; })
       .addCase(activateTheme.fulfilled, (s, a) => {
         s.themes = s.themes.map(t => ({ ...t, is_active: t.id === a.payload?.id ? 1 : 0 }));
         s.activeTheme = a.payload || null;
+      })
+      .addCase(activateTheme.rejected, (s, a) => { s.error = a.payload; })
+      .addCase(updateThemeConfig.fulfilled, (s, a) => {
+        const config = JSON.stringify(a.payload.config);
+        s.themes = s.themes.map(t => (t.id === a.payload.themeId ? { ...t, config } : t));
+        if (s.activeTheme?.id === a.payload.themeId) s.activeTheme = { ...s.activeTheme, config };
       });
   },
 });
