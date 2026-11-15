@@ -1,5 +1,8 @@
 import { NavLink, useLocation, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import api from '../../utils/api';
+import { formatRp } from '../../components/ui';
 import {
   Home, ClipboardList, Package, BadgePercent, Users, Palette, BarChart3, LayoutGrid, Settings,
   ChevronDown, ChevronRight, Wallet, Coins, Plus,
@@ -104,6 +107,17 @@ function childActive(child, pathname, siblings) {
 }
 
 export default function Sidebar() {
+  const storeId = useSelector((s) => s.stores.currentStore?.id);
+  const [wallet, setWallet] = useState({ balance: 0, coins: 0, points: 0 });
+  const location = useLocation();
+  useEffect(() => {
+    if (!storeId) return undefined;
+    let alive = true;
+    api.get(`/stores/${storeId}/wallet`)
+      .then((res) => { if (alive) setWallet({ balance: res.data?.balance || 0, coins: res.data?.coins || 0, points: res.data?.points || 0 }); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [storeId, location.pathname]);
   const { pathname } = useLocation();
   // Grup yang terbuka mengikuti rute aktif; klik manual hanya berlaku sampai rute berubah.
   const [manual, setManual] = useState({ path: null, label: null });
@@ -120,14 +134,14 @@ export default function Sidebar() {
           <Link to="/my-balance" className="flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 rounded-t-lg">
             <Wallet className="w-4 h-4 text-subdued" aria-hidden="true" />
             <span className="text-xs text-subdued font-medium font-[family-name:var(--font-label)]">Saldo</span>
-            <span className="ml-auto text-xs font-semibold text-neutral">Rp 0</span>
+            <span className="ml-auto text-xs font-semibold text-neutral">{formatRp(wallet.balance)}</span>
             <ChevronRight className="w-4 h-4 text-subdued" aria-hidden="true" />
           </Link>
           <Link to="/wallet/report" className="flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 rounded-b-lg">
             <Coins className="w-4 h-4 text-subdued" aria-hidden="true" />
             <div className="flex-1 text-xs text-subdued font-medium font-[family-name:var(--font-label)] leading-4">
-              <div className="flex justify-between"><span>Koin</span><span className="font-semibold text-neutral">0</span></div>
-              <div className="flex justify-between"><span>Poin</span><span className="text-neutral">0</span></div>
+              <div className="flex justify-between"><span>Koin</span><span className="font-semibold text-neutral">{wallet.coins.toLocaleString('id-ID')}</span></div>
+              <div className="flex justify-between"><span>Poin</span><span className="text-neutral">{wallet.points.toLocaleString('id-ID')}</span></div>
             </div>
             <ChevronRight className="w-4 h-4 text-subdued" aria-hidden="true" />
           </Link>

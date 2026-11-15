@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { BarChart3, Pencil, Plus, Trash2, Crown, Gift } from 'lucide-react';
 import {
   PageHeader, Card, Button, IconButton, Badge, Toggle, TextInput, Select, SettingsSection, SettingsCard, Modal, formatRp,
 } from '../../components/ui';
 import { useStoreSetting } from './useStoreSetting';
+import { usePlan } from '../subscriptions/usePlan';
 import { SaveActions, TextArea, LoadErrorNote, NoStoreNote } from './CustomerParts';
 import { newId } from './buyerGroups';
 
@@ -42,6 +44,8 @@ export default function LoyaltyPage() {
   const [tierForm, setTierForm] = useState(EMPTY_TIER);
   const [tierError, setTierError] = useState('');
   const [error, setError] = useState('');
+  const { can, requiredPlan } = usePlan();
+  const locked = !can('loyalty');
 
   const set = (patch) => setting.setValue((s) => ({ ...s, ...patch }));
   const setBirthday = (patch) => setting.setValue((s) => ({ ...s, birthdayVoucher: { ...s.birthdayVoucher, ...patch } }));
@@ -117,10 +121,15 @@ export default function LoyaltyPage() {
               <Toggle
                 id="loyalty-enabled"
                 label="Aktifkan program loyalty"
-                description={v.enabled ? 'Program aktif. Customer mengumpulkan Koin dari setiap pesanan selesai.' : 'Program belum aktif.'}
+                description={v.enabled ? 'Program aktif. Customer mengumpulkan Koin dari setiap pesanan selesai.' : locked ? `Butuh paket ${requiredPlan('loyalty')} — upgrade untuk mengaktifkan.` : 'Program belum aktif.'}
                 checked={v.enabled}
-                onChange={(val) => set({ enabled: val })}
+                onChange={(val) => { if (val && locked) { setError(`Program keanggotaan pelanggan membutuhkan paket ${requiredPlan('loyalty')}.`); return; } set({ enabled: val }); }}
               />
+              {locked && (
+                <p className="mt-2 text-xs">
+                  <Link to="/settings/plans" className="text-primary hover:underline">Upgrade Paket</Link>
+                </p>
+              )}
             </SettingsCard>
           </SettingsSection>
 

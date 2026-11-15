@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { createProduct } from './productsSlice';
 import DropdownSelect from '../../components/DropdownSelect';
+import { useStoreSetting, PRODUCT_PREF_DEFAULTS } from '../product-preferences/productData';
 
 export default function ProductAddPage() {
   const navigate = useNavigate();
@@ -27,6 +28,18 @@ export default function ProductAddPage() {
     interest_count: 0, audience: 'all',
     schedule_display: false, schedule_launch: false,
   });
+  const { value: pprefs } = useStoreSetting('product_preferences', PRODUCT_PREF_DEFAULTS);
+  // Pengaturan Produk: status ketersediaan & visibilitas default untuk produk baru.
+  useEffect(() => {
+    if (!pprefs) return;
+    setForm((f) => {
+      if (f.name) return f; // sudah disentuh user — jangan timpa.
+      const next = { ...f };
+      if (pprefs.default_status && f.availability === 'stock') next.availability = pprefs.default_status;
+      if (pprefs.show_new_products === false && f.status === 'published') next.status = 'draft';
+      return next;
+    });
+  }, [pprefs]);
 
   const handleChange = (field) => (e) => {
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;

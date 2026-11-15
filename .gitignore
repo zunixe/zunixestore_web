@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Hasil tangkapan/perbandingan Playwright
+.playwright-mcp/
+.vercel

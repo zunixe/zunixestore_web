@@ -1,61 +1,56 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Pencil, LayoutTemplate } from 'lucide-react';
-import {
-  PageHeader, Card, CardHeader, Button, Badge, Pagination, EmptyState, Modal, TextInput,
-} from '../../components/ui';
-import { fetchThemes, activateTheme, updateThemeConfig } from './themesSlice';
+import { useNavigate } from 'react-router-dom';
+import { LayoutTemplate, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Card, Button, EmptyState, Modal, TextInput } from '../../components/ui';
+import { fetchThemes, activateTheme } from './themesSlice';
 import ThemePreview from './ThemePreview';
-import { themeColors } from './themeUtils';
+import { themeColors, previewUrl, storefrontUrl, formatWaktu } from './themeUtils';
+import { mergeDraft, toStoreSettings } from './editor/schema';
+import api from '../../utils/api';
 import RowMenu from '../store-design/RowMenu';
-import { useStoreSetting, formatTanggal } from '../store-design/useStoreSetting';
+import { useStoreSetting, newId } from '../store-design/useStoreSetting';
 
 const MAX_DESIGNS = 5;
+const PER_PAGE = 8;
 
-function storeUrlOf(store) {
-  if (!store) return '';
-  const host = store.domain || (store.slug ? `${store.slug}.zunixe.com` : '');
-  return host ? `https://${host}` : '';
+/* Gambar pratinjau template (screenshot). Tanpa gambar → pratinjau generik dari warna. */
+function TemplateShot({ theme, className = '' }) {
+  const [broken, setBroken] = useState(false);
+  if (theme?.preview_url && !broken) {
+    return (
+      <img
+        src={theme.preview_url}
+        alt=""
+        loading="lazy"
+        onError={() => setBroken(true)}
+        className={`w-full h-full object-cover object-top ${className}`}
+      />
+    );
+  }
+  const c = themeColors(theme);
+  return <ThemePreview colors={{ primary_color: c.primary_color, bg_color: '#FFFFFF', sidebar_color: '#FFFFFF' }} size="lg" className={className} />;
 }
 
-function ColorField({ id, label, value, onChange }) {
+function LiveBadge() {
   return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-neutral mb-1.5">{label}</label>
-      <div className="flex items-center gap-2">
-        <input
-          id={id}
-          type="color"
-          value={/^#[0-9a-f]{6}$/i.test(value) ? value : '#000000'}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-10 h-10 rounded-md border border-divider cursor-pointer bg-white p-1"
-        />
-        <input
-          type="text"
-          value={value}
-          aria-label={`${label} (hex)`}
-          onChange={(e) => onChange(e.target.value)}
-          maxLength={7}
-          className="flex-1 h-10 px-3 rounded-md border border-divider text-sm bg-white focus:outline-none focus:border-primary uppercase"
-        />
-      </div>
-    </div>
+    <span className="inline-flex items-center gap-1 rounded-full bg-success-surface border border-success/20 px-2 py-0.5 text-[11px] text-success">
+      <span className="w-1.5 h-1.5 rounded-full bg-success" aria-hidden="true" />
+      Tayang
+    </span>
   );
 }
 
 export default function ThemePage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { currentStore } = useSelector((s) => s.stores);
   const { themes, activeTheme, isLoading, error } = useSelector((s) => s.themes);
   const designs = useStoreSetting('my_designs', []);
 
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [previewTheme, setPreviewTheme] = useState(null);
   const [renameTarget, setRenameTarget] = useState(null);
   const [renameValue, setRenameValue] = useState('');
-  const [editOpen, setEditOpen] = useState(false);
-  const [editColors, setEditColors] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [notice, setNotice] = useState(null);
 
@@ -67,19 +62,14 @@ export default function ThemePage() {
   const entryOf = (id) => entries.find((e) => e.themeId === id);
   const nameOf = (theme) => entryOf(theme?.id)?.name || theme?.name || 'Tanpa nama';
 
-  // "Desain saya" = desain yang ditambahkan dari template + desain yang sedang tayang.
-  const myDesigns = useMemo(() => {
-    const list = entries
-      .map((e) => ({ entry: e, theme: themes.find((t) => t.id === e.themeId) }))
-      .filter((d) => d.theme);
-    if (activeTheme && !list.some((d) => d.theme.id === activeTheme.id)) {
-      list.unshift({ entry: { themeId: activeTheme.id }, theme: activeTheme });
-    }
-    return list;
-  }, [entries, themes, activeTheme]);
+  // "Desain saya" = desain yang ditambahkan dari template, selain yang sedang tayang.
+  const myDesigns = useMemo(() => entries
+    .map((e) => ({ entry: e, theme: themes.find((t) => t.id === e.themeId) }))
+    .filter((d) => d.theme && d.theme.id !== activeTheme?.id), [entries, themes, activeTheme]);
+  const designCount = myDesigns.length + (activeTheme ? 1 : 0);
 
-  const pagedTemplates = themes.slice((page - 1) * limit, page * limit);
-  const storeUrl = storeUrlOf(currentStore);
+  const pages = Math.max(1, Math.ceil(themes.length / PER_PAGE));
+  const pagedTemplates = themes.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const flash = (tone, text) => setNotice({ tone, text });
 
@@ -91,12 +81,70 @@ export default function ThemePage() {
     return designs.save(next);
   };
 
-  const applyTheme = async (theme) => {
+  const openPreview = (theme) => {
+    if (!previewUrl(currentStore, theme)) {
+      flash('danger', 'Alamat toko belum diatur, jadi tampilan belum bisa dibuka.');
+      return;
+    }
+    navigate(`/settings/themes/preview/${theme.id}`);
+  };
+
+  /* Ambil draft desain: duplikat → entry.design; template → design_<template>. */
+  const loadDraft = async (theme, entry) => {
+    if (entry?.design) return entry.design;
+    try {
+      const res = await api.get(`/stores/${currentStore.id}/settings`);
+      const st = res?.data || {};
+      const raw = st[`design_${theme.template}`] || (theme.is_active ? st.design_live : null);
+      if (raw) return typeof raw === 'string' ? JSON.parse(raw) : raw;
+    } catch { /* abaikan — pakai default */ }
+    return null;
+  };
+
+  /* Duplikat desain → entri baru di "Desain saya" dengan draft sendiri. */
+  const duplicateDesign = async (theme, entry) => {
+    if (designCount >= MAX_DESIGNS) {
+      flash('danger', `Maksimal ${MAX_DESIGNS} desain. Hapus salah satu desain terlebih dahulu.`);
+      return;
+    }
+    const draft = mergeDraft(await loadDraft(theme, entry));
+    const name = `Salinan ${entry?.name || theme.name}`;
+    const next = [...entries, {
+      designId: `d-${newId()}`,
+      themeId: theme.id,
+      name,
+      design: draft,
+      addedAt: new Date().toISOString(),
+    }];
+    const ok = await designs.save(next);
+    flash(ok ? 'success' : 'danger', ok ? `"${name}" ditambahkan ke Desain saya.` : 'Gagal menduplikat desain.');
+  };
+
+  const applyTheme = async (theme, entry) => {
     if (!currentStore) return;
-    setBusyId(theme.id);
+    const prev = activeTheme;
+    setBusyId(entry?.designId || theme.id);
     try {
       await dispatch(activateTheme({ storeId: currentStore.id, themeId: theme.id })).unwrap();
-      await upsertEntry(theme.id, { lastUsed: new Date().toISOString() });
+      // Draft desain ikut ditayangkan: design_live + kunci yang dibaca storefront.
+      const draft = await loadDraft(theme, entry);
+      if (draft) {
+        const merged = mergeDraft(draft);
+        await api.put(`/stores/${currentStore.id}/settings`, {
+          design_live: JSON.stringify(merged),
+          ...toStoreSettings(merged),
+        });
+      }
+      // Desain yang sebelumnya tayang tetap ada di "Desain saya".
+      let next = entries;
+      const touch = (id, patch) => {
+        next = next.some((e) => e.themeId === id)
+          ? next.map((e) => (e.themeId === id ? { ...e, ...patch } : e))
+          : [...next, { themeId: id, ...patch }];
+      };
+      if (prev && prev.id !== theme.id) touch(prev.id, { lastUsed: new Date().toISOString() });
+      touch(theme.id, { lastUsed: new Date().toISOString() });
+      await designs.save(next);
       flash('success', `"${nameOf(theme)}" sekarang tayang di toko Anda.`);
     } catch (err) {
       flash('danger', typeof err === 'string' ? err : 'Gagal menerapkan desain.');
@@ -106,8 +154,11 @@ export default function ThemePage() {
   };
 
   const adoptTemplate = async (theme) => {
-    if (entryOf(theme.id) || theme.id === activeTheme?.id) return;
-    if (myDesigns.length >= MAX_DESIGNS) {
+    if (theme.id === activeTheme?.id || entryOf(theme.id)) {
+      flash('success', `"${theme.name}" sudah ada di Desain saya.`);
+      return;
+    }
+    if (designCount >= MAX_DESIGNS) {
       flash('danger', `Maksimal ${MAX_DESIGNS} desain. Hapus salah satu desain terlebih dahulu.`);
       return;
     }
@@ -115,53 +166,39 @@ export default function ThemePage() {
     flash(ok ? 'success' : 'danger', ok ? `"${theme.name}" ditambahkan ke Desain saya.` : 'Gagal menyimpan desain.');
   };
 
-  const removeDesign = async (themeId) => {
-    const ok = await designs.save(entries.filter((e) => e.themeId !== themeId));
+  const removeDesign = async (entry) => {
+    const ok = await designs.save(entries.filter((e) => e !== entry));
     if (!ok) flash('danger', 'Gagal menghapus desain.');
   };
 
-  const openRename = (theme) => {
-    setRenameTarget(theme);
-    setRenameValue(nameOf(theme));
+  const openRename = (theme, entry) => {
+    setRenameTarget({ theme, entry });
+    setRenameValue(entry?.name || nameOf(theme));
   };
 
   const submitRename = async (e) => {
     e?.preventDefault();
     if (!renameTarget || !renameValue.trim()) return;
-    const ok = await upsertEntry(renameTarget.id, { name: renameValue.trim() });
+    const { theme, entry } = renameTarget;
+    let ok;
+    if (entry?.designId) {
+      ok = await designs.save(entries.map((x) => (x === entry ? { ...x, name: renameValue.trim() } : x)));
+    } else {
+      ok = await upsertEntry(theme.id, { name: renameValue.trim() });
+    }
     setRenameTarget(null);
     if (!ok) flash('danger', 'Gagal menyimpan nama desain.');
   };
 
   const openEdit = () => {
     if (!activeTheme) return;
-    const c = themeColors(activeTheme);
-    setEditColors({ primary_color: c.primary_color, bg_color: c.bg_color, sidebar_color: c.sidebar_color });
-    setEditOpen(true);
+    navigate(`/settings/themes/${activeTheme.id}`);
   };
 
-  const colorsValid = editColors && Object.values(editColors).every((v) => /^#[0-9a-f]{6}$/i.test(v));
-
-  const submitEdit = async () => {
-    if (!activeTheme || !currentStore || !colorsValid) return;
-    try {
-      const config = { ...themeColors(activeTheme).raw, ...editColors };
-      await dispatch(updateThemeConfig({ storeId: currentStore.id, themeId: activeTheme.id, config })).unwrap();
-      await upsertEntry(activeTheme.id, { updatedAt: new Date().toISOString() });
-      setEditOpen(false);
-      flash('success', 'Desain toko diperbarui.');
-    } catch (err) {
-      flash('danger', typeof err === 'string' ? err : 'Gagal memperbarui desain.');
-    }
-  };
-
-  const activeEntry = activeTheme ? entryOf(activeTheme.id) : null;
-  const lastUpdated = activeEntry?.updatedAt || activeEntry?.lastUsed || activeTheme?.created_at;
+  const shopUrl = storefrontUrl(currentStore);
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="Desain & Template" subtitle="Atur tampilan website toko Anda." />
-
+    <div className="max-w-[1024px] mx-auto space-y-6 pb-8">
       {notice && (
         <div
           role="status"
@@ -176,157 +213,145 @@ export default function ThemePage() {
       )}
 
       {/* Desain saat ini */}
-      <Card>
-        <CardHeader title="Desain saat ini" />
+      <section>
+        <h2 className="text-base font-semibold text-neutral mb-4">Desain saat ini</h2>
         {isLoading && !activeTheme ? (
-          <div className="h-64 rounded-lg bg-gray-100 animate-pulse" />
+          <div className="h-[260px] rounded-lg bg-gray-100 animate-pulse" />
         ) : !activeTheme ? (
-          <EmptyState icon={LayoutTemplate} title="Belum ada desain" description="Pilih template di bawah untuk mulai mendesain toko Anda." className="py-8" />
+          <Card variant="elevated"><EmptyState icon={LayoutTemplate} title="Belum ada desain" description="Pilih template di bawah untuk mulai mendesain toko Anda." className="py-8" /></Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-4">
-            <div className="aspect-[16/9] rounded-lg border border-divider overflow-hidden">
-              <ThemePreview theme={activeTheme} size="lg" />
-            </div>
-            <div className="flex flex-col justify-between gap-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-bold text-neutral truncate">{nameOf(activeTheme)}</h3>
-                    <Badge tone="success">Tayang</Badge>
-                  </div>
-                  <p className="text-xs text-subdued mt-1">Terakhir diupdate: {formatTanggal(lastUpdated)}</p>
-                  {storeUrl && <p className="text-xs text-subdued mt-1 truncate">{storeUrl.replace('https://', '')}</p>}
+          <Card padded={false} variant="elevated" className="overflow-hidden">
+            <button type="button" onClick={() => openPreview(activeTheme)} className="block w-full aspect-[8/3] overflow-hidden border-b border-divider cursor-pointer" aria-label={`Lihat tampilan ${nameOf(activeTheme)}`}>
+              <TemplateShot theme={activeTheme} />
+            </button>
+            <div className="flex flex-wrap items-center gap-3 px-4 py-4">
+              <div className="flex-1 min-w-[160px]">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-neutral">{nameOf(activeTheme)}</span>
+                  <LiveBadge />
                 </div>
-                <RowMenu
-                  label="Opsi desain saat ini"
-                  items={[
-                    { label: 'Lihat Tampilan', onClick: () => setPreviewTheme(activeTheme) },
-                    { label: 'Ubah nama', onClick: () => openRename(activeTheme) },
-                    storeUrl && { label: 'Kunjungi toko', onClick: () => window.open(storeUrl, '_blank', 'noopener') },
-                  ]}
-                />
+                <p className="text-xs text-neutral mt-0.5">Terakhir diupdate: {formatWaktu(activeTheme.updated_at || entryOf(activeTheme.id)?.lastUsed)}</p>
               </div>
-              <Button variant="tonal" icon={Pencil} className="w-full" onClick={openEdit}>Edit Desain Toko</Button>
+              <Button variant="tonal" size="sm" onClick={openEdit}>Edit Desain Toko</Button>
+              <RowMenu
+                label="Opsi desain saat ini"
+                items={[
+                  { label: 'Lihat Tampilan', onClick: () => openPreview(activeTheme) },
+                  { label: 'Ubah nama', onClick: () => openRename(activeTheme, entryOf(activeTheme.id)) },
+                  { label: 'Duplikat', onClick: () => duplicateDesign(activeTheme, entryOf(activeTheme.id)) },
+                  shopUrl && { label: 'Kunjungi toko', onClick: () => window.open(shopUrl, '_blank', 'noopener') },
+                ]}
+              />
             </div>
-          </div>
+          </Card>
         )}
-      </Card>
+      </section>
 
       {/* Desain saya */}
-      <Card padded={false}>
-        <div className="px-4 pt-4">
-          <CardHeader title={`Desain saya (${myDesigns.length}/${MAX_DESIGNS})`} subtitle="Simpan hingga 5 desain dan terapkan kapan saja." />
-        </div>
-        {myDesigns.length === 0 ? (
-          <p className="px-4 pb-4 text-sm text-subdued">Belum ada desain tersimpan. Gunakan template di bawah untuk menambahkan.</p>
-        ) : (
-          <ul className="divide-y divide-divider border-t border-divider">
-            {myDesigns.map(({ entry, theme }) => {
-              const isActive = theme.id === activeTheme?.id;
-              const label = entry.name || theme.name;
-              return (
-                <li key={theme.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <div className="w-24 h-14 rounded-md border border-divider overflow-hidden shrink-0">
-                    <ThemePreview theme={theme} size="sm" />
-                  </div>
-                  <div className="flex-1 min-w-[140px]">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-neutral truncate">{label}</span>
-                      {isActive && <Badge tone="success">Tayang</Badge>}
-                    </div>
-                    <p className="text-xs text-subdued mt-0.5">
-                      Terakhir digunakan: {entry.lastUsed ? formatTanggal(entry.lastUsed) : isActive ? 'Sekarang' : 'Belum pernah'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" onClick={() => openRename(theme)} aria-label={`Ubah nama ${label}`}>Ubah</Button>
-                    {!isActive && (
-                      <Button variant="tonal" disabled={busyId === theme.id} onClick={() => applyTheme(theme)}>
-                        {busyId === theme.id ? 'Menerapkan...' : 'Terapkan Sekarang'}
-                      </Button>
-                    )}
-                    <RowMenu
-                      label={`Opsi ${label}`}
-                      items={[
-                        { label: 'Lihat Tampilan', onClick: () => setPreviewTheme(theme) },
-                        !isActive && entries.some((e) => e.themeId === theme.id) && { label: 'Hapus dari Desain saya', danger: true, onClick: () => removeDesign(theme.id) },
-                      ]}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
-
-      {/* Jelajahi template */}
-      <Card padded={false}>
-        <div className="px-4 pt-4">
-          <CardHeader title="Jelajahi Template" subtitle="Pilih template sebagai titik awal desain toko Anda." />
-        </div>
-        {isLoading && themes.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 pb-4">
-            {[0, 1].map((i) => <div key={i} className="h-56 rounded-lg bg-gray-100 animate-pulse" />)}
-          </div>
-        ) : themes.length === 0 ? (
-          <EmptyState icon={LayoutTemplate} title="Belum ada template" description="Template akan tampil di sini setelah tersedia." className="py-8" />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 pb-4">
-              {pagedTemplates.map((theme) => {
-                const owned = !!entryOf(theme.id) || theme.id === activeTheme?.id;
+      <section>
+        <h2 className="text-base font-semibold text-neutral mb-4">Desain saya ({designCount}/{MAX_DESIGNS})</h2>
+        <Card padded={false} variant="elevated">
+          {myDesigns.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-subdued">Belum ada desain lain. Gunakan template di bawah untuk menambahkan.</p>
+          ) : (
+            <ul className="divide-y divide-divider">
+              {myDesigns.map(({ entry, theme }) => {
+                const label = entry.name || theme.name;
+                const editorId = entry.designId || theme.id;
                 return (
-                  <div key={theme.id} className="rounded-lg border border-divider overflow-hidden">
-                    <div className="aspect-[16/10] border-b border-divider">
-                      <ThemePreview theme={theme} />
+                  <li key={editorId} className="flex flex-wrap items-center gap-2 px-4 py-4">
+                    <div className="w-14 h-10 rounded-sm overflow-hidden bg-gray-100 shrink-0"><TemplateShot theme={theme} /></div>
+                    <div className="flex-1 min-w-[140px]">
+                      <p className="text-sm font-medium text-neutral truncate">{label}</p>
+                      <p className="text-xs text-neutral">
+                        Terakhir digunakan: {entry.lastUsed ? formatWaktu(entry.lastUsed) : 'Belum pernah'}
+                      </p>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 p-3">
-                      <span className="text-sm font-semibold text-neutral">{theme.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" onClick={() => setPreviewTheme(theme)}>Lihat Tampilan</Button>
-                        <Button variant="tonal" disabled={owned} onClick={() => adoptTemplate(theme)}>
-                          {owned ? 'Sudah dipakai' : 'Gunakan template'}
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/settings/themes/${editorId}`)} aria-label={`Edit ${label}`}>Ubah</Button>
+                      <Button variant="tonal" size="sm" disabled={busyId === editorId} onClick={() => applyTheme(theme, entry)}>
+                        {busyId === editorId ? 'Menerapkan...' : 'Terapkan Sekarang'}
+                      </Button>
+                      <RowMenu
+                        label={`Opsi ${label}`}
+                        items={[
+                          { label: 'Ubah nama', onClick: () => openRename(theme, entry) },
+                          { label: 'Duplikat', onClick: () => duplicateDesign(theme, entry) },
+                          { label: 'Hapus', danger: true, onClick: () => removeDesign(entry) },
+                        ]}
+                      />
                     </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
-            <Pagination
-              page={page}
-              limit={limit}
-              total={themes.length}
-              onPage={setPage}
-              onLimit={(n) => { setLimit(n); setPage(1); }}
-              label="Template per halaman:"
-            />
-          </>
-        )}
-      </Card>
+            </ul>
+          )}
+        </Card>
+      </section>
 
-      {/* Modal pratinjau */}
-      <Modal
-        open={!!previewTheme}
-        title={previewTheme ? `Tampilan: ${nameOf(previewTheme)}` : ''}
-        onClose={() => setPreviewTheme(null)}
-        width="max-w-3xl"
-        footer={previewTheme && (
+      {/* Jelajahi template */}
+      <section>
+        <h2 className="text-base font-semibold text-neutral mb-4">Jelajahi Template</h2>
+        {isLoading && themes.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[0, 1].map((i) => <div key={i} className="h-[230px] rounded-lg bg-gray-100 animate-pulse" />)}
+          </div>
+        ) : themes.length === 0 ? (
+          <Card variant="elevated"><EmptyState icon={LayoutTemplate} title="Belum ada template" description="Template akan tampil di sini setelah tersedia." className="py-8" /></Card>
+        ) : (
           <>
-            <Button variant="secondary" onClick={() => setPreviewTheme(null)}>Tutup</Button>
-            {previewTheme.id !== activeTheme?.id && (
-              <Button onClick={() => { const t = previewTheme; setPreviewTheme(null); applyTheme(t); }}>Terapkan Sekarang</Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {pagedTemplates.map((theme) => (
+                <Card key={theme.id} padded={false} variant="elevated" className="overflow-hidden">
+                  <div className="aspect-[504/179] overflow-hidden bg-gray-100">
+                    <TemplateShot theme={theme} />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-4">
+                    <span className="text-base font-semibold text-neutral">{theme.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Button variant="ghost" size="sm" onClick={() => openPreview(theme)}>Lihat Tampilan</Button>
+                      <Button variant="tonal" size="sm" onClick={() => adoptTemplate(theme)}>Gunakan template</Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+            {pages > 1 && (
+              <nav className="flex justify-center items-center gap-1 mt-4" aria-label="Halaman template">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  aria-label="Halaman sebelumnya"
+                  className="w-8 h-8 rounded-md flex items-center justify-center text-neutral hover:bg-gray-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: pages }, (_, k) => k + 1).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p)}
+                    aria-current={p === page ? 'page' : undefined}
+                    className={`w-8 h-8 rounded-md text-sm cursor-pointer ${p === page ? 'bg-primary text-white' : 'text-neutral hover:bg-gray-100'}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                  disabled={page === pages}
+                  aria-label="Halaman berikutnya"
+                  className="w-8 h-8 rounded-md flex items-center justify-center text-neutral hover:bg-gray-100 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </nav>
             )}
           </>
         )}
-      >
-        {previewTheme && (
-          <div className="aspect-[16/10] rounded-lg border border-divider overflow-hidden">
-            <ThemePreview theme={previewTheme} size="lg" />
-          </div>
-        )}
-      </Modal>
+      </section>
 
       {/* Modal ubah nama */}
       <Modal
@@ -345,33 +370,6 @@ export default function ThemePage() {
         </form>
       </Modal>
 
-      {/* Modal edit desain */}
-      <Modal
-        open={editOpen}
-        title="Edit Desain Toko"
-        onClose={() => setEditOpen(false)}
-        width="max-w-2xl"
-        footer={(
-          <>
-            <Button variant="secondary" onClick={() => setEditOpen(false)}>Batal</Button>
-            <Button onClick={submitEdit} disabled={!colorsValid}>Simpan</Button>
-          </>
-        )}
-      >
-        {editColors && (
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-4">
-            <div className="space-y-3">
-              <ColorField id="clr-primary" label="Warna utama" value={editColors.primary_color} onChange={(v) => setEditColors((c) => ({ ...c, primary_color: v }))} />
-              <ColorField id="clr-bg" label="Warna latar" value={editColors.bg_color} onChange={(v) => setEditColors((c) => ({ ...c, bg_color: v }))} />
-              <ColorField id="clr-header" label="Warna header" value={editColors.sidebar_color} onChange={(v) => setEditColors((c) => ({ ...c, sidebar_color: v }))} />
-              {!colorsValid && <p className="text-xs text-danger">Gunakan format warna hex, mis. #4169E1.</p>}
-            </div>
-            <div className="aspect-[16/10] rounded-lg border border-divider overflow-hidden self-start">
-              <ThemePreview colors={colorsValid ? editColors : undefined} theme={activeTheme} />
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }

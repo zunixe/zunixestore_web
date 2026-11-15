@@ -213,11 +213,6 @@ export default function OrdersListView({
     });
   };
 
-  const changeStatus = async (orderId, groupKey) => {
-    await dispatch(updateOrderStatus({ storeId, orderId, status: STATUS_GROUPS[groupKey].write })).unwrap();
-    setReload((n) => n + 1);
-  };
-
   const applyBulk = async () => {
     if (!bulkStatus || selected.length === 0) return;
     setBulkBusy(true);
@@ -445,8 +440,7 @@ export default function OrdersListView({
           key={detailId}
           storeId={storeId}
           orderId={detailId}
-          onClose={() => setDetailId(null)}
-          onChangeStatus={changeStatus}
+          onClose={() => { setDetailId(null); setReload((n) => n + 1); }}
         />
       )}
       {createOpen && (

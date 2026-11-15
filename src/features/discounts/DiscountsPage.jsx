@@ -17,7 +17,7 @@ const TYPE_OPTIONS = [
   { value: 'fixed_amount', label: 'Nominal (Rp)' },
 ];
 const EMPTY_FORM = {
-  code: '', type: 'percentage', value: '', max_discount: '', min_purchase: '', usage_limit: '', start_date: '', end_date: '', status: 'active',
+  code: '', type: 'percentage', value: '', max_discount: '', min_purchase: '', usage_limit: '', start_date: '', end_date: '', status: 'active', product_ids: [],
 };
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -78,15 +78,35 @@ function MoreMenu({ items }) {
 
 function DiscountFormModal({ initial, onClose, onSubmit }) {
   const isEdit = !!initial.id;
+  const { currentStore } = useSelector((s) => s.stores);
+  const [products, setProducts] = useState([]);
+  const [prodSearch, setProdSearch] = useState('');
   const [form, setForm] = useState(() => ({
     ...EMPTY_FORM,
     ...Object.fromEntries(Object.entries(initial).map(([k, v]) => [k, v ?? ''])),
+    product_ids: (() => { try { const a = JSON.parse(initial.product_ids || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } })(),
     start_date: initial.start_date ? String(initial.start_date).slice(0, 10) : '',
     end_date: initial.end_date ? String(initial.end_date).slice(0, 10) : '',
   }));
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
+
+  useEffect(() => {
+    if (!currentStore?.id) return undefined;
+    let cancelled = false;
+    api.get(`/stores/${currentStore.id}/products?limit=100`)
+      .then((r) => { if (!cancelled) setProducts(r.data?.items || []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [currentStore?.id]);
+
+  const toggleProduct = (id) => set({
+    product_ids: form.product_ids.includes(id)
+      ? form.product_ids.filter((x) => x !== id)
+      : [...form.product_ids, id],
+  });
+  const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(prodSearch.toLowerCase()));
 
   const submit = async (e) => {
     e.preventDefault();
@@ -106,6 +126,7 @@ function DiscountFormModal({ initial, onClose, onSubmit }) {
       start_date: form.start_date || null,
       end_date: form.end_date || null,
       status: form.status,
+      product_ids: form.product_ids,
     };
     setBusy(true);
     try {
@@ -165,6 +186,27 @@ function DiscountFormModal({ initial, onClose, onSubmit }) {
           />
           <TextInput id="disc-start" label="Tanggal mulai" type="date" value={form.start_date} onChange={(e) => set({ start_date: e.target.value })} />
           <TextInput id="disc-end" label="Tanggal selesai" type="date" min={form.start_date || undefined} value={form.end_date} onChange={(e) => set({ end_date: e.target.value })} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-neutral mb-1">Berlaku untuk produk</label>
+          <p className="text-xs text-subdued mb-2">Kosongkan untuk semua produk. Diskon hanya memotong harga produk yang dipilih.</p>
+          <input
+            type="search"
+            placeholder="Cari produk..."
+            value={prodSearch}
+            onChange={(e) => setProdSearch(e.target.value)}
+            className="w-full h-9 px-3 mb-2 rounded-lg border border-divider text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <div className="max-h-40 overflow-y-auto border border-divider rounded-lg divide-y divide-divider">
+            {filteredProducts.length === 0 && <p className="px-3 py-3 text-sm text-subdued">Tidak ada produk.</p>}
+            {filteredProducts.map((p) => (
+              <label key={p.id} className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50">
+                <input type="checkbox" checked={form.product_ids.includes(p.id)} onChange={() => toggleProduct(p.id)} className="accent-primary" />
+                <span className="truncate">{p.name}</span>
+              </label>
+            ))}
+          </div>
+          {form.product_ids.length > 0 && <p className="text-xs text-primary mt-1">{form.product_ids.length} produk dipilih</p>}
         </div>
         <Toggle
           id="disc-status"
@@ -280,7 +322,13 @@ export default function DiscountsPage() {
       render: (d) => (d.usage_limit ? `${d.usage_count || 0}/${d.usage_limit}` : <span className="text-subdued">{d.usage_count || 0} / Tidak terbatas</span>),
     },
     { key: 'dates', label: 'Tanggal Aktif', className: 'whitespace-nowrap', render: activeRange },
-    { key: 'products', label: 'Jumlah Produk', className: 'whitespace-nowrap', render: () => <span className="text-subdued">Semua produk</span> },
+    {
+      key: 'products', label: 'Jumlah Produk', className: 'whitespace-nowrap',
+      render: (d) => {
+        const n = (() => { try { const a = JSON.parse(d.product_ids || '[]'); return Array.isArray(a) ? a.length : 0; } catch { return 0; } })();
+        return n > 0 ? <span className="tabular-nums">{n} produk</span> : <span className="text-subdued">Semua produk</span>;
+      },
+    },
     {
       key: 'status', label: 'Status',
       render: (d) => (isActive(d, today) ? <Badge tone="success">Aktif</Badge> : <Badge tone="muted">Tidak Aktif</Badge>),

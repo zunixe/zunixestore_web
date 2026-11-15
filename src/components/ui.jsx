@@ -26,9 +26,17 @@ export function PageHeader({ title, subtitle, actions, children }) {
   );
 }
 
-export function Card({ className = '', children, padded = true, ...rest }) {
+export function Card({ className = '', children, padded = true, variant = 'default', ...rest }) {
   return (
-    <div className={cx('bg-white rounded-xl', padded && 'p-4', className)} {...rest}>
+    <div
+      className={cx(
+        'bg-white',
+        variant === 'elevated' ? 'rounded-lg shadow-[0_4px_8px_rgba(176,190,197,0.44)]' : 'rounded-xl',
+        padded && 'p-4',
+        className,
+      )}
+      {...rest}
+    >
       {children}
     </div>
   );

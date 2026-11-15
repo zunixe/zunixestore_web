@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import api from '../../utils/api';
 import { Download, Settings, Star, MessageSquareText, User } from 'lucide-react';
 import {
   PageHeader, Card, Button, Badge, InfoBanner, FilterChip, EmptyState, Modal, Toggle,
 } from '../../components/ui';
 import { formatDate } from '../../utils/formatters';
 import { useStoreSetting } from './useStoreSetting';
+import { usePlan } from '../subscriptions/usePlan';
 import { TextArea, SaveStatus } from './CustomerParts';
 
 /*
@@ -14,7 +17,7 @@ import { TextArea, SaveStatus } from './CustomerParts';
  * { id, productId, productName, customerName, rating (1-5), text, createdAt,
  *   aspects?: { quality, service, shipping, price }, reply? }
  */
-const REVIEWS = [];
+// Ulasan dimuat dari GET /stores/:id/reviews (backend tabel `reviews`).
 
 const REVIEW_SETTINGS_KEY = 'review_settings';
 const REVIEW_SETTINGS_DEFAULT = {
@@ -135,14 +138,33 @@ function downloadCsv(reviews) {
 
 export default function RatingsPage() {
   const setting = useStoreSetting(REVIEW_SETTINGS_KEY, REVIEW_SETTINGS_DEFAULT);
+  const storeId = useSelector((s) => s.stores.currentStore?.id);
+  const [apiReviews, setApiReviews] = useState([]);
   const [replies, setReplies] = useState({});
+
+  const loadReviews = () => {
+    if (!storeId) return;
+    api.get(`/stores/${storeId}/reviews`)
+      .then((res) => setApiReviews((res.data || []).map((r) => ({
+        id: r.id, productId: r.product_id, productName: r.product_name,
+        customerName: r.customer_name, rating: r.rating, text: r.text,
+        aspects: r.aspects, reply: r.reply, createdAt: r.created_at,
+      }))))
+      .catch(() => setApiReviews([]));
+  };
+  useEffect(loadReviews, [storeId]);
+
+  const onReply = (id, text) => {
+    setReplies((m) => ({ ...m, [id]: text }));
+    api.put(`/stores/${storeId}/reviews/${id}/reply`, { reply: text }).catch(() => setReplies((m) => { const n = { ...m }; delete n[id]; return n; }));
+  };
   const [ratingFilter, setRatingFilter] = useState('');
   const [productFilter, setProductFilter] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draft, setDraft] = useState(REVIEW_SETTINGS_DEFAULT);
 
-  const reviews = useMemo(() => REVIEWS.map((r) => ({ ...r, reply: replies[r.id] ?? r.reply })), [replies]);
+  const reviews = useMemo(() => apiReviews.map((r) => ({ ...r, reply: replies[r.id] ?? r.reply })), [apiReviews, replies]);
   const count = reviews.length;
 
   const summary = useMemo(() => {
@@ -170,6 +192,8 @@ export default function RatingsPage() {
   const label = scoreLabel(summary.avg, count);
   const enabled = setting.value.enabled;
   const busy = setting.status.type === 'saving';
+  const { can, requiredPlan } = usePlan();
+  const reviewLocked = !can('reviews');
 
   const enableReviews = () => setting.save({ ...setting.value, enabled: true });
   const openSettings = () => { setDraft(setting.value); setSettingsOpen(true); };
@@ -204,9 +228,13 @@ export default function RatingsPage() {
           description="Nyalakan fitur review untuk tingkatkan kepercayaan dan konversi."
           action={(
             <div className="flex items-center gap-3">
-              <Button size="sm" onClick={enableReviews} disabled={busy}>
-                {busy ? 'Mengaktifkan...' : 'Aktifkan Review'}
-              </Button>
+              {reviewLocked ? (
+                <Button size="sm" to="/settings/plans">{`Upgrade ke ${requiredPlan('reviews')}`}</Button>
+              ) : (
+                <Button size="sm" onClick={enableReviews} disabled={busy}>
+                  {busy ? 'Mengaktifkan...' : 'Aktifkan Review'}
+                </Button>
+              )}
               {setting.status.type === 'error' && <SaveStatus status={setting.status} />}
             </div>
           )}
@@ -283,7 +311,7 @@ export default function RatingsPage() {
         ) : (
           <ul className="px-4">
             {filtered.map((r) => (
-              <ReviewItem key={r.id} review={r} onReply={(id, text) => setReplies((m) => ({ ...m, [id]: text }))} />
+              <ReviewItem key={r.id} review={r} onReply={onReply} />
             ))}
           </ul>
         )}

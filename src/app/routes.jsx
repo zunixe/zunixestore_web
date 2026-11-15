@@ -64,6 +64,8 @@ import WishlistReportPage from '../features/analytics/WishlistReportPage';
 import LoyaltyAnalyticsPage from '../features/analytics/LoyaltyAnalyticsPage';
 import MarketingToolsPage from '../features/analytics/MarketingToolsPage';
 import AffiliatePage from '../features/analytics/AffiliatePage';
+import ThemeEditorPage from '../features/themes/editor/ThemeEditorPage';
+import TemplatePreviewPage from '../features/themes/TemplatePreviewPage';
 
 export default function AppRoutes() {
   return (
@@ -105,6 +107,7 @@ export default function AppRoutes() {
           <Route path="/settings/policies" element={<PoliciesPage />} />
           <Route path="/settings/delete-store" element={<DeleteStorePage />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/settings/plans" element={<SubscriptionPage />} />
           <Route path="/stores/new" element={<StoreCreatePage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
@@ -150,6 +153,23 @@ export default function AppRoutes() {
           <Route path="/preferences/marketing" element={<MarketingToolsPage />} />
           <Route path="/affiliate-links" element={<AffiliatePage />} />
         </Route>
+        {/* Editor desain + preview template: layar penuh di luar Layout admin. */}
+        <Route
+          path="/settings/themes/preview/:themeId"
+          element={(
+            <ProtectedRoute>
+              <TemplatePreviewPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/settings/themes/:themeId"
+          element={(
+            <ProtectedRoute>
+              <ThemeEditorPage />
+            </ProtectedRoute>
+          )}
+        />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>

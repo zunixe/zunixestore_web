@@ -4,6 +4,8 @@ import {
   PageHeader, Card, CardHeader, Button, IconButton, Badge, EmptyState, Modal, TextInput,
 } from '../../components/ui';
 import { useStoreSetting } from './useStoreSetting';
+import { usePlan } from '../subscriptions/usePlan';
+import UpgradeCard from '../subscriptions/UpgradeCard';
 
 const EMPTY = [];
 const WEEKDAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -138,6 +140,16 @@ export default function OpenOrderPage() {
   };
 
   const sorted = [...schedules].sort((a, b) => a.start.localeCompare(b.start));
+  const { can, loading: planLoading } = usePlan();
+
+  if (!planLoading && !can('open_order')) {
+    return (
+      <div>
+        <PageHeader title="Kalender Open Order" subtitle="Atur periode pre-order agar pembeli tahu kapan pesanan dibuka dan dikirim." />
+        <UpgradeCard feature="open_order" title="Kalender Open Order" description="Jadwalkan periode pre-order untuk pembeli. Fitur ini tersedia mulai paket Basic." />
+      </div>
+    );
+  }
 
   return (
     <div>

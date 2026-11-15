@@ -13,7 +13,16 @@ async function request(endpoint, options = {}) {
     headers,
   });
 
-  const data = await res.json();
+  const text = await res.text();
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      throw new Error('Invalid server response');
+    }
+  }
 
   if (!res.ok) {
     throw new Error(data.message || 'Request failed');

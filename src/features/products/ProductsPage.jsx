@@ -5,12 +5,36 @@ import {
   Plus, FileSpreadsheet, MoreVertical, ExternalLink, ImageIcon, FilePlus2, Upload, ChevronRight, ChevronDown, Trash2, Pencil, Columns3,
 } from 'lucide-react';
 import { fetchProducts, deleteProduct } from './productsSlice';
+import { fetchUsage } from '../subscriptions/subscriptionSlice';
 import api from '../../utils/api';
 import {
   PageHeader, Card, Button, IconButton, Tabs, SearchInput, FilterChip, AddFilterChip, DataTable, Pagination, Modal, formatRp,
 } from '../../components/ui';
 
-const MAX_PRODUCTS = 100;
+const DEFAULT_MAX_PRODUCTS = 30;
+
+export function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i + 1] === '"') { cur += '"'; i += 1; } else if (c === '"') inQ = false;
+      else cur += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',' || c === ';') { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i += 1;
+      row.push(cur); rows.push(row); row = []; cur = '';
+    } else cur += c;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim() !== ''));
+}
+
+const CSV_HEADERS = ['sku', 'name', 'price', 'stock', 'category', 'status'];
 const AVAILABILITY = [
   { value: 'stock', label: 'Gunakan Stok' },
   { value: 'always', label: 'Selalu Tersedia' },
@@ -83,8 +107,11 @@ export default function ProductsPage() {
   const [selected, setSelected] = useState([]);
   const [sort, setSort] = useState('');
   const fileRef = useRef(null);
+  const [importStatus, setImportStatus] = useState(null);
 
   const productCount = totalAll || total;
+  const usage = useSelector((s) => s.subscriptions?.usage);
+  const maxProducts = usage?.usage?.products?.limit ?? DEFAULT_MAX_PRODUCTS;
 
   const load = () => {
     if (!currentStore) return;
@@ -94,6 +121,7 @@ export default function ProductsPage() {
     if (availFilter) params.status = availFilter;
     if (sort) params.sort = sort;
     dispatch(fetchProducts({ storeId: currentStore.id, params }));
+    dispatch(fetchUsage(currentStore.id));
   };
 
   useEffect(load, [dispatch, currentStore, query, page, limit, categoryFilter, availFilter, sort]);
@@ -105,6 +133,55 @@ export default function ProductsPage() {
 
   const handleDelete = (id) => {
     if (window.confirm('Hapus produk ini?')) dispatch(deleteProduct({ storeId: currentStore.id, productId: id }));
+  };
+
+  const exportCsv = () => {
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [CSV_HEADERS, ...items.map((p) => [p.sku || '', p.name, p.price, p.stock, p.category || '', p.status || 'published'])];
+    const blob = new Blob([rows.map((r) => r.map(esc).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `produk-${currentStore?.slug || 'toko'}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const importCsv = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !currentStore) return;
+    setShowCreate(false);
+    setImportStatus({ type: 'saving', message: 'Mengimpor produk…' });
+    try {
+      const rows = parseCsv(await file.text());
+      const header = rows.shift()?.map((h) => h.trim().toLowerCase()) || [];
+      if (!header.includes('name')) throw new Error('Format tidak dikenal — butuh kolom "name"');
+      const idx = (k) => header.indexOf(k);
+      let created = 0;
+      let failed = 0;
+      let lastErr = '';
+      for (const r of rows) {
+        const name = (idx('name') >= 0 ? r[idx('name')] : r[0])?.trim();
+        const price = Number(idx('price') >= 0 ? r[idx('price')] : 0) || 0;
+        if (!name) { failed += 1; continue; }
+        try {
+          await api.post(`/stores/${currentStore.id}/products`, {
+            name,
+            price,
+            sku: idx('sku') >= 0 ? r[idx('sku')].trim() : undefined,
+            stock: Number(idx('stock') >= 0 ? r[idx('stock')] : 0) || 0,
+            category: idx('category') >= 0 ? r[idx('category')].trim() : undefined,
+            status: idx('status') >= 0 ? r[idx('status')].trim() : undefined,
+          });
+          created += 1;
+        } catch (err) { failed += 1; lastErr = err.message || ''; }
+      }
+      setImportStatus({ type: created ? 'saved' : 'error', message: `Impor selesai: ${created} produk ditambahkan${failed ? `, ${failed} gagal${lastErr ? ` (${lastErr})` : ''}` : ''}` });
+      setPage(1);
+      load();
+    } catch (err) {
+      setImportStatus({ type: 'error', message: err.message || 'Gagal membaca file' });
+    }
   };
 
   const handleAvailability = async (productId, availability) => {
@@ -159,8 +236,8 @@ export default function ProductsPage() {
     { key: 'edit', label: <Columns3 className="w-4 h-4 text-subdued" aria-label="Atur kolom" />, className: 'w-10', render: () => null },
   ];
 
-  const pct = Math.min((productCount / MAX_PRODUCTS) * 100, 100);
-  const over = productCount > MAX_PRODUCTS;
+  const pct = maxProducts === null ? 100 : Math.min((productCount / maxProducts) * 100, 100);
+  const over = maxProducts !== null && productCount > maxProducts;
 
   return (
     <div>
@@ -169,17 +246,17 @@ export default function ProductsPage() {
         actions={(
           <>
             <IconButton icon={MoreVertical} label="Opsi lain" />
-            <Button variant="secondary" icon={FileSpreadsheet}>Unduh / Perbarui (Excel)</Button>
+            <Button variant="secondary" icon={FileSpreadsheet} onClick={exportCsv}>Unduh / Perbarui (Excel)</Button>
             <Button icon={Plus} onClick={() => setShowCreate(true)}>Buat produk</Button>
           </>
         )}
       >
         <div className="flex items-center gap-3 mt-1.5">
-          <div className="w-[120px] h-1.5 bg-gray-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={productCount} aria-valuemax={MAX_PRODUCTS} aria-label="Kuota produk">
+          <div className="w-[120px] h-1.5 bg-gray-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={productCount} aria-valuemax={maxProducts ?? 0} aria-label="Kuota produk">
             <div className={`h-full rounded-full ${over ? 'bg-danger' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
           </div>
           <div className="leading-tight">
-            <div className="text-[11px] text-neutral tabular-nums">{productCount} / {MAX_PRODUCTS}</div>
+            <div className="text-[11px] text-neutral tabular-nums">{productCount} / {maxProducts === null ? '∞' : maxProducts}</div>
             <Link to="/subscription" className="text-[11px] text-primary hover:underline">Tambah Limit</Link>
           </div>
         </div>
@@ -258,9 +335,14 @@ export default function ProductsPage() {
             </span>
             <ChevronRight className="w-4 h-4 text-subdued" aria-hidden="true" />
           </button>
-          <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" />
+          <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={importCsv} />
         </div>
       </Modal>
+      {importStatus?.message && (
+        <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg text-sm shadow-lg ${importStatus.type === 'error' ? 'bg-danger text-white' : 'bg-neutral text-white'}`}>
+          {importStatus.message}
+        </div>
+      )}
     </div>
   );
 }

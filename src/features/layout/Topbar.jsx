@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { logout } from '../auth/authSlice';
 import { setCurrentStore } from '../stores/storeSlice';
+import api from '../../utils/api';
 
 function useClickOutside(ref, onOutside) {
   useEffect(() => {
@@ -18,6 +19,7 @@ function useClickOutside(ref, onOutside) {
 export default function Topbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [notifs, setNotifs] = useState({ items: [], unread: 0 });
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
@@ -27,6 +29,28 @@ export default function Topbar() {
   const searchRef = useRef(null);
   useClickOutside(userRef, () => setDropdownOpen(false));
   useClickOutside(notifRef, () => setNotifOpen(false));
+
+  // Notifikasi toko (Stok Menipis dll.) — muat saat toko berganti & poll tiap 30 dtk.
+  useEffect(() => {
+    if (!currentStore?.id) return undefined;
+    let alive = true;
+    const load = () => api.get(`/stores/${currentStore.id}/notifications`)
+      .then((r) => { if (alive) setNotifs({ items: r.data?.items || [], unread: r.data?.unread || 0 }); })
+      .catch(() => {});
+    load();
+    const t = setInterval(load, 30000);
+    return () => { alive = false; clearInterval(t); };
+  }, [currentStore?.id]);
+
+  const markRead = (n) => {
+    api.put(`/stores/${currentStore.id}/notifications/${n.id}/read`, {}).catch(() => {});
+    setNotifs((s) => ({ items: s.items.map((x) => (x.id === n.id ? { ...x, read_at: 'now' } : x)), unread: Math.max(0, s.unread - 1) }));
+    if (n.type === 'low_stock') { setNotifOpen(false); navigate('/stock'); }
+  };
+  const markAllRead = () => {
+    api.put(`/stores/${currentStore.id}/notifications/read-all`, {}).catch(() => {});
+    setNotifs((s) => ({ items: s.items.map((x) => ({ ...x, read_at: x.read_at || 'now' })), unread: 0 }));
+  };
 
   // Pintasan ⌘J / Ctrl+J untuk fokus ke pencarian
   useEffect(() => {
@@ -88,16 +112,48 @@ export default function Topbar() {
             className="relative w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-neutral cursor-pointer"
           >
             <Bell className="w-[22px] h-[22px]" strokeWidth={1.6} />
+            {notifs.unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-danger text-white text-[10px] font-semibold flex items-center justify-center">
+                {notifs.unread > 9 ? '9+' : notifs.unread}
+              </span>
+            )}
           </button>
           {notifOpen && (
             <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-divider z-[200] p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-neutral">Notifikasi</span>
-                <button type="button" aria-label="Tutup" onClick={() => setNotifOpen(false)} className="text-subdued hover:text-neutral cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {notifs.unread > 0 && (
+                    <button type="button" onClick={markAllRead} className="text-xs text-primary hover:underline cursor-pointer">Tandai semua dibaca</button>
+                  )}
+                  <button type="button" aria-label="Tutup" onClick={() => setNotifOpen(false)} className="text-subdued hover:text-neutral cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div className="text-center py-8 text-subdued text-sm">Belum ada notifikasi</div>
+              {notifs.items.length === 0 ? (
+                <div className="text-center py-8 text-subdued text-sm">Belum ada notifikasi</div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto -mx-1">
+                  {notifs.items.map((n) => (
+                    <button
+                      type="button"
+                      key={n.id}
+                      onClick={() => markRead(n)}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer ${n.read_at ? 'opacity-60' : ''}`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {!n.read_at && <span className="mt-1.5 w-2 h-2 rounded-full bg-primary shrink-0" aria-hidden="true" />}
+                        <div className={n.read_at ? 'pl-[18px]' : ''}>
+                          <p className="text-sm font-medium text-neutral">{n.title}</p>
+                          <p className="text-xs text-subdued mt-0.5">{n.body}</p>
+                          <p className="text-[10px] text-subdued mt-1">{new Date(n.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

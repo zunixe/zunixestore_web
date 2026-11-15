@@ -26,6 +26,9 @@ export default function CustomersPage() {
   const { items, total, isLoading, error } = useSelector((s) => s.customers);
   const groupsSetting = useStoreSetting(BUYER_GROUPS_KEY, BUYER_GROUPS_DEFAULT);
   const groups = useMemo(() => groupsSetting.value.groups || [], [groupsSetting.value]);
+  const loyaltySetting = useStoreSetting('loyalty_program', { tiers: [] });
+  const tiers = useMemo(() => [...(loyaltySetting.value.tiers || [])].sort((a, b) => (b.minSpend || 0) - (a.minSpend || 0)), [loyaltySetting.value]);
+  const tierOf = (c) => (loyaltySetting.value.enabled && tiers.length ? tiers.find((t) => Number(c.total_spent || 0) >= Number(t.minSpend || 0)) : null);
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -100,6 +103,11 @@ export default function CustomersPage() {
           </div>
         );
       },
+    },
+    {
+      key: 'tier',
+      label: 'Tier',
+      render: (c) => { const t = tierOf(c); return t ? <Badge tone="warning">{t.name}</Badge> : <span className="text-subdued">-</span>; },
     },
     {
       key: 'total_orders',

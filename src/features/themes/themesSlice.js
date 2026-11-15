@@ -35,8 +35,9 @@ const themesSlice = createSlice({
       .addCase(activateTheme.rejected, (s, a) => { s.error = a.payload; })
       .addCase(updateThemeConfig.fulfilled, (s, a) => {
         const config = JSON.stringify(a.payload.config);
-        s.themes = s.themes.map(t => (t.id === a.payload.themeId ? { ...t, config } : t));
-        if (s.activeTheme?.id === a.payload.themeId) s.activeTheme = { ...s.activeTheme, config };
+        const updated_at = new Date().toISOString();
+        s.themes = s.themes.map(t => (t.id === a.payload.themeId ? { ...t, config, updated_at } : t));
+        if (s.activeTheme?.id === a.payload.themeId) s.activeTheme = { ...s.activeTheme, config, updated_at };
       });
   },
 });
