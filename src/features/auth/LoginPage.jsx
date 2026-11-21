@@ -1,8 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Truck, Tag, CreditCard, UserRound, AlertCircle, Loader2 } from 'lucide-react';
-import { login, clearError } from './authSlice';
+import { login, loginWithGoogle, loginWithFacebook, clearError } from './authSlice';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
+
+function loadScript(src, { id, check }) {
+  return new Promise((resolve, reject) => {
+    if (check()) return resolve();
+    const existing = document.getElementById(id);
+    if (existing) {
+      existing.addEventListener('load', resolve, { once: true });
+      existing.addEventListener('error', () => reject(new Error('Gagal memuat SDK')), { once: true });
+      return;
+    }
+    const s = document.createElement('script');
+    s.id = id;
+    s.src = src;
+    s.async = true;
+    s.defer = true;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Gagal memuat SDK'));
+    document.head.appendChild(s);
+  });
+}
+
+function loadGoogleIdentity(dispatch) {
+  return loadScript('https://accounts.google.com/gsi/client', {
+    id: 'google-gsi',
+    check: () => !!window.google?.accounts?.id,
+  }).then(() => {
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (resp) => dispatch(loginWithGoogle({ credential: resp.credential })),
+    });
+  });
+}
+
+function loadFacebookSdk() {
+  return loadScript('https://connect.facebook.net/en_US/sdk.js', {
+    id: 'facebook-jssdk',
+    check: () => !!window.FB,
+  }).then(() => {
+    window.FB.init({ appId: FACEBOOK_APP_ID, cookie: false, xfbml: false, version: 'v21.0' });
+  });
+}
 
 function Wordmark() {
   return (
@@ -62,12 +106,47 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [oauthError, setOauthError] = useState(null);
+  const googleBtnRef = useRef(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isAuthenticated, isLoading, error } = useSelector((s) => s.auth);
 
   useEffect(() => { if (isAuthenticated) navigate('/dashboard'); }, [isAuthenticated, navigate]);
   useEffect(() => { return () => dispatch(clearError()); }, [dispatch]);
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !googleBtnRef.current) return;
+    loadGoogleIdentity(dispatch)
+      .then(() => {
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: 'filled_blue',
+          size: 'large',
+          shape: 'pill',
+          text: 'signin_with',
+          width: googleBtnRef.current.clientWidth || 220,
+        });
+      })
+      .catch(() => setOauthError('Gagal memuat login Google'));
+  }, [dispatch]);
+
+  const handleGoogleClick = () => {
+    if (!GOOGLE_CLIENT_ID) return setOauthError('Login Google belum dikonfigurasi');
+    loadGoogleIdentity(dispatch)
+      .then(() => window.google.accounts.id.prompt())
+      .catch(() => setOauthError('Gagal memuat login Google'));
+  };
+
+  const handleFacebookClick = () => {
+    if (!FACEBOOK_APP_ID) return setOauthError('Login Facebook belum dikonfigurasi');
+    setOauthError(null);
+    loadFacebookSdk()
+      .then(() => window.FB.login((resp) => {
+        const token = resp?.authResponse?.accessToken;
+        if (token) dispatch(loginWithFacebook({ accessToken: token }));
+      }, { scope: 'email,public_profile' }))
+      .catch(() => setOauthError('Gagal memuat login Facebook'));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -102,10 +181,10 @@ export default function LoginPage() {
             <h1 className="text-[24px] font-semibold text-black leading-tight">Masuk ke ZunixeStore</h1>
             <p className="text-sm text-black mt-2.5">Sebelum melanjutkan ke dashboard toko...</p>
 
-            {error && (
+            {(error || oauthError) && (
               <div role="alert" className="mt-6 flex items-start gap-2 rounded-lg bg-danger-surface border border-red-200 px-3 py-2.5 text-sm text-danger">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
-                <span>{error}</span>
+                <span>{error || oauthError}</span>
               </div>
             )}
 
@@ -169,11 +248,17 @@ export default function LoginPage() {
             </div>
 
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 px-1.5">
-              <button type="button" className="h-10 rounded-full bg-[#1a73e8] text-white text-sm font-medium flex items-center pl-0.5 pr-4 transition-opacity hover:opacity-90 cursor-pointer">
-                <span className="w-9 h-9 rounded-full bg-white flex items-center justify-center shrink-0"><GoogleIcon /></span>
-                <span className="flex-1 text-center">Masuk dengan Google</span>
-              </button>
-              <button type="button" className="h-10 rounded-full bg-[#1877f2] text-white text-sm font-semibold flex items-center pl-2.5 pr-4 transition-opacity hover:opacity-90 cursor-pointer">
+              <div className="h-10 rounded-full bg-[#1a73e8] overflow-hidden flex items-center justify-center">
+                {GOOGLE_CLIENT_ID ? (
+                  <div ref={googleBtnRef} className="flex justify-center" />
+                ) : (
+                  <button type="button" onClick={handleGoogleClick} className="h-10 rounded-full bg-[#1a73e8] text-white text-sm font-medium flex items-center pl-0.5 pr-4 transition-opacity hover:opacity-90 cursor-pointer w-full justify-center">
+                    <span className="w-9 h-9 rounded-full bg-white flex items-center justify-center shrink-0"><GoogleIcon /></span>
+                    <span className="flex-1 text-center">Masuk dengan Google</span>
+                  </button>
+                )}
+              </div>
+              <button type="button" onClick={handleFacebookClick} disabled={isLoading} className="h-10 rounded-full bg-[#1877f2] text-white text-sm font-semibold flex items-center pl-2.5 pr-4 transition-opacity hover:opacity-90 disabled:opacity-60 cursor-pointer">
                 <FacebookIcon />
                 <span className="flex-1 text-center">Masuk dengan Facebook</span>
               </button>

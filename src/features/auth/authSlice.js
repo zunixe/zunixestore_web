@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, isAnyOf } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 
 export const login = createAsyncThunk('auth/login', async (credentials, { rejectWithValue }) => {
@@ -20,6 +20,19 @@ export const register = createAsyncThunk('auth/register', async (userData, { rej
     return rejectWithValue(err.message);
   }
 });
+
+const oauthLogin = (endpoint) => createAsyncThunk(`auth/oauth/${endpoint}`, async (body, { rejectWithValue }) => {
+  try {
+    const res = await api.post(`/auth/${endpoint}`, body);
+    localStorage.setItem('token', res.data.token);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message);
+  }
+});
+
+export const loginWithGoogle = oauthLogin('google');
+export const loginWithFacebook = oauthLogin('facebook');
 
 export const fetchMe = createAsyncThunk('auth/fetchMe', async (_, { rejectWithValue }) => {
   try {
@@ -80,6 +93,19 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
       })
       .addCase(register.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      .addMatcher(isAnyOf(loginWithGoogle.pending, loginWithFacebook.pending), (state) => {
+        state.isLoading = true; state.error = null;
+      })
+      .addMatcher(isAnyOf(loginWithGoogle.fulfilled, loginWithFacebook.fulfilled), (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isAuthenticated = true;
+      })
+      .addMatcher(isAnyOf(loginWithGoogle.rejected, loginWithFacebook.rejected), (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       })
