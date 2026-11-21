@@ -111,7 +111,8 @@ export default function ProductsPage() {
 
   const productCount = totalAll || total;
   const usage = useSelector((s) => s.subscriptions?.usage);
-  const maxProducts = usage?.usage?.products?.limit ?? DEFAULT_MAX_PRODUCTS;
+  const usageLimit = usage?.usage?.products?.limit;
+  const maxProducts = usage ? usageLimit : DEFAULT_MAX_PRODUCTS;
 
   const load = () => {
     if (!currentStore) return;
