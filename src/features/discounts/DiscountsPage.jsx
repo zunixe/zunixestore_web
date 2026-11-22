@@ -17,7 +17,7 @@ const TYPE_OPTIONS = [
   { value: 'fixed_amount', label: 'Nominal (Rp)' },
 ];
 const EMPTY_FORM = {
-  code: '', type: 'percentage', value: '', max_discount: '', min_purchase: '', usage_limit: '', start_date: '', end_date: '', status: 'active', product_ids: [],
+  name: '', code: '', type: 'percentage', value: '', max_discount: '', min_purchase: '', usage_limit: '', start_date: '', end_date: '', status: 'active', product_ids: [],
 };
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -117,6 +117,7 @@ function DiscountFormModal({ initial, onClose, onSubmit }) {
     if (form.start_date && form.end_date && form.end_date < form.start_date) { setErr('Tanggal selesai tidak boleh sebelum tanggal mulai.'); return; }
     const num = (v) => (v === '' || v === null ? null : Number(v));
     const payload = {
+      name: form.name.trim() || null,
       code: form.code.trim().toUpperCase() || null,
       type: form.type,
       value,
@@ -152,12 +153,20 @@ function DiscountFormModal({ initial, onClose, onSubmit }) {
     >
       <form id="discount-form" onSubmit={submit} className="space-y-4">
         <TextInput
+          id="disc-name"
+          label="Nama diskon"
+          placeholder="Contoh: Discount New Member"
+          value={form.name}
+          onChange={(e) => set({ name: e.target.value })}
+          hint="Tampil di keranjang & checkout pembeli."
+        />
+        <TextInput
           id="disc-code"
           label="Kode diskon"
           placeholder="Contoh: HEMAT10"
           value={form.code}
           onChange={(e) => set({ code: e.target.value.toUpperCase() })}
-          hint="Kosongkan jika diskon berlaku otomatis tanpa kode."
+          hint="Kosongkan agar diskon berlaku otomatis: harga di toko langsung dicoret (bila harga ≥ min. pembelian) atau diberi label “Extra”, dan potongan otomatis masuk di checkout."
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Select id="disc-type" label="Tipe diskon" value={form.type} onChange={(v) => set({ type: v })} options={TYPE_OPTIONS} />
