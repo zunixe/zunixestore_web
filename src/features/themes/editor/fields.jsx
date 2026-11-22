@@ -280,6 +280,55 @@ export function Accordion({ title, open, onToggle, children }) {
   );
 }
 
+/* Kotak jarak/padding 4 sisi (atas, kiri, kanan, bawah) seperti tab Pengaturan Plugo. */
+export function BoxSpacing({ value, onChange }) {
+  const v = value || {};
+  const set = (k, x) => onChange({ ...v, [k]: x === '' ? '' : Number(x) });
+  // Fungsi biasa (bukan komponen) agar input tidak di-remount & kehilangan fokus saat mengetik.
+  const cell = (k, label) => (
+    <div className="flex items-center h-8 rounded-md border border-divider bg-white px-2 w-[84px]">
+      <input
+        type="number"
+        value={v[k] ?? ''}
+        onChange={(e) => set(k, e.target.value)}
+        aria-label={label}
+        className="w-full min-w-0 text-xs text-center bg-transparent focus:outline-none"
+      />
+      <span className="text-[11px] text-subdued">px</span>
+    </div>
+  );
+  return (
+    <div className="rounded-lg bg-gray-100 p-3 grid grid-cols-3 gap-2 place-items-center">
+      <span />{cell('top', 'Atas')}<span />
+      {cell('left', 'Kiri')}
+      <div className="h-8 w-[84px] rounded-md bg-gray-200/80 flex items-center justify-center text-[11px] text-subdued">--</div>
+      {cell('right', 'Kanan')}
+      <span />{cell('bottom', 'Bawah')}<span />
+    </div>
+  );
+}
+
+/* Ketajaman Ujung Konten: tajam / sedang / bulat. */
+export function RadiusPicker({ value, onChange }) {
+  const OPTS = [{ v: 'tajam', r: 'rounded-none', label: 'Tajam' }, { v: 'sedang', r: 'rounded-md', label: 'Sedang' }, { v: 'bulat', r: 'rounded-2xl', label: 'Bulat' }];
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {OPTS.map((o) => (
+        <button
+          key={o.v}
+          type="button"
+          onClick={() => onChange(value === o.v ? '' : o.v)}
+          aria-label={o.label}
+          title={o.label}
+          className={cx('h-14 rounded-lg border-2 flex items-center justify-center cursor-pointer', value === o.v ? 'border-primary bg-primary-surface/40' : 'border-divider bg-white hover:border-gray-300')}
+        >
+          <span className={cx('w-8 h-8 bg-gray-400/70 border-2 border-gray-500/60', o.r)} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* Pemilih tampilan: grid kartu thumbnail bergaya wireframe seperti Plugo. */
 export function LayoutPicker({ options, value, onChange, cols = 2 }) {
   return (

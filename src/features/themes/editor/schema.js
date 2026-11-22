@@ -6,8 +6,20 @@
 
 export const PAGE_OPTIONS = [
   'Halaman Home', 'Halaman Katalog', 'Halaman Detail Produk', 'Halaman keranjang',
-  'Halaman Pemesanan', 'Halaman Akun', 'Masuk & Daftar',
+  'Halaman Pemesanan', 'Halaman Akun', 'Masuk & Daftar', 'Halaman Order',
 ];
+
+/* Halaman storefront yang dibuka pratinjau saat halaman dipilih ({product} = produk pertama). */
+export const PAGE_PATHS = {
+  'Halaman Home': '/',
+  'Halaman Katalog': '/products',
+  'Halaman Detail Produk': '/products/{product}',
+  'Halaman keranjang': '/cart',
+  'Halaman Pemesanan': '/checkout',
+  'Halaman Akun': '/account',
+  'Masuk & Daftar': '/auth',
+  'Halaman Order': '/orders',
+};
 
 export const LAYOUT6 = [
   { value: 'Grid', label: 'Grid' },
@@ -72,25 +84,29 @@ export const DEFAULT_DRAFT = {
       warnaTeks: '#DB0028', judul: 'Super Promo', deskripsi: '',
       tanggal: '', waktu: '12:00',
       tombolShow: true, tombolTeks: 'Lihat Produk', tombolLink: '', tombolTipe: 'Outlined', tombolWarna: '#0C0103',
-      latarKonten: true, posisi: 'Tengah', aksiSelesai: 'Sembunyikan', desain: {},
+      latarKonten: true, posisi: 'Tengah',
+      /* Setelah hitung mundur selesai (Plugo): Ubah Konten | Sembunyikan Bagian | Tidak ada. */
+      aksiSelesai: 'Ubah Konten', judulSelesai: '', deskripsiSelesai: '', sembunyikanWaktu: false,
+      tombolSelesaiShow: true, tombolSelesaiTeks: 'Lihat Produk', tombolSelesaiLink: '',
+      desain: {},
     },
     featured: {
-      tampilan: 'Grid', visible: true, produkIds: [],
-      judul: { ...TITLE_DEFAULT, text: 'Best Seller' },
-      efek: 'Original', style: 'Original', deskripsi: 'Standar', label: 'Standar',
-      tampilkanSemua: true, desain: {},
+      tampilan: 'Carousel', visible: true, produkIds: [],
+      judul: { ...TITLE_DEFAULT, text: 'Best Seller', posisi: 'Tengah' },
+      efek: 'Original', style: 'Original', deskripsi: 'Standar', label: true,
+      tampilkanSemua: false, desain: {},
     },
     latest: {
       tampilan: 'Grid', visible: true,
       judul: { ...TITLE_DEFAULT, text: 'Produk Terbaru' },
       efek: 'Original', style: 'Original', tombolTipe: 'Outlined', tombolWarna: '#0C0103',
-      perBaris: 5, jumlah: 10, deskripsi: 'Standar', label: 'Standar',
-      tampilkanSemua: true, desain: {},
+      perBaris: 5, jumlah: 10, deskripsi: 'Standar', label: true,
+      tampilkanSemua: false, desain: {},
     },
     bundle: {
       tampilan: 'Grid', visible: true, bundleIds: [],
       judul: { ...TITLE_DEFAULT, text: '' }, perBaris: 2,
-      efek: 'Original', style: 'Grid', tampilkanSemua: true, desain: {},
+      efek: 'Original', style: 'Grid', tampilkanSemua: false, desain: {},
     },
     faq: {
       tampilan: 'Grid', visible: true,
@@ -103,7 +119,25 @@ export const DEFAULT_DRAFT = {
     },
   },
   order: ['namaToko', 'slideshow', 'countdown', 'featured', 'latest', 'bundle', 'faq', 'footer'],
+  /* Pengaturan halaman selain Home (pemilih halaman). */
+  pages: {
+    katalog: {
+      kategoriNavAtas: false, judulKategori: 'Kecil', warnaJudulKategori: '', posisiGambar: 'Di Dalam',
+      menu: 'Kustom', filter: 'Side', rentangHarga: true, efek: 'Hover',
+      statusProduk: true, labelOngkir: true, jarakDesktop: true, kategoriPromo: false,
+    },
+    detail: {
+      gambar: 'Default', rasio: '1:1', zoom: false, varian: 'Selection', konten: 'Standar',
+      atas: ['Hitung Mundur Peluncuran Produk', 'Label', 'Nama Produk', 'rating', 'Harga produk', 'Poin', 'Voucher', 'Ketentuan Kuantitas', 'Variasi', 'Tombol Beli', 'Item Gratis', 'Video', 'Deskripsi', 'Pengiriman', 'Grosir', 'Tagar', 'Obrolan'],
+      bawah: ['Rekomendasi', 'Baru Dilihat', 'Ulasan'],
+      sembunyi: [],
+    },
+    keranjang: { notifikasi: true, rekomendasi: true },
+  },
 };
+
+/* Animasi bawaan storefront per seksi (dipakai bila tab Desain belum diubah). */
+export const DEFAULT_ANIM = { featured: 'Slide Up', latest: 'Slide Up', faq: 'Slide Up' };
 
 /* Metadata seksi di sidebar (ikon dipetakan di panels). */
 export const SECTION_META = {
@@ -152,6 +186,14 @@ export function mergeDraft(raw) {
   };
   const merged = deep(d, raw);
   merged.order = Array.isArray(raw.order) ? raw.order : d.order;
+  /* Nilai lama → opsi Plugo. */
+  const cd = merged.sections.countdown;
+  cd.aksiSelesai = { Sembunyikan: 'Sembunyikan Bagian', 'Tampilkan pesan': 'Ubah Konten' }[cd.aksiSelesai] || cd.aksiSelesai;
+  cd.bgMode = cd.bgMode === 'warna' ? 'color' : cd.bgMode;
+  for (const k of ['countdown', 'slideshow']) {
+    const s = merged.sections[k];
+    s.tinggi = { Rendah: 'Kecil', Tinggi: 'Besar' }[s.tinggi] || s.tinggi;
+  }
   return merged;
 }
 
@@ -171,7 +213,8 @@ export function toStoreSettings(draft) {
   const g = draft.global;
   const h = draft.home;
   const s = draft.sections;
-  const countdownEnd = s.countdown.tanggal ? `${s.countdown.tanggal}T${s.countdown.waktu || '00:00'}` : '';
+  // Tanggal & jam diisi dalam WIB.
+  const countdownEnd = s.countdown.tanggal ? `${s.countdown.tanggal}T${s.countdown.waktu || '00:00'}:00+07:00` : '';
   const featuredIds = s.featured.produkIds || [];
   return {
     /* Draft utuh — storefront membaca ini dulu, kunci di bawah jadi fallback. */
@@ -179,14 +222,15 @@ export function toStoreSettings(draft) {
     primary_color: g.warna.brand,
     secondary_color: g.warna.tombol,
     footer_color: s.footer.latar,
-    announcement_text: h.pengumuman.teksBerjalan || h.pengumuman.popup ? (h.pengumuman.teks || '') : '',
+    /* Bilah pengumuman selalu tampil (Popup/Teks Berjalan hanya mengubah cara tampilnya, seperti Plugo). */
+    announcement_text: h.pengumuman.teks || '',
     slider_images: JSON.stringify(s.slideshow.images.filter(Boolean)),
     countdown_end: countdownEnd,
     countdown_title: s.countdown.judul || '',
     countdown_desc: s.countdown.deskripsi || '',
     /* Alias kunci yang sudah dibaca template lama & endpoint type=featured. */
     hero_title: s.countdown.judul || '',
-    hero_subtitle: s.countdown.deskripsi || '',
+    hero_subtitle: s.countdown.deskripsiSelesai || s.countdown.deskripsi || '',
     hero_banner_url: s.countdown.bgMode === 'image' ? (s.countdown.image || '') : '',
     featured_title: s.featured.judul?.text || 'Best Seller',
     featured_product_ids: JSON.stringify(featuredIds),
