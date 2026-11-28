@@ -3,6 +3,7 @@ import Layout from '../features/layout/Layout';
 import LoginPage from '../features/auth/LoginPage';
 import RegisterPage from '../features/auth/RegisterPage';
 import ProtectedRoute from '../features/auth/ProtectedRoute';
+import SessionExpiredHandler from '../features/auth/SessionExpiredHandler';
 import DashboardPage from '../features/dashboard/DashboardPage';
 import OrdersPage from '../features/orders/OrdersPage';
 import ProductsPage from '../features/products/ProductsPage';
@@ -70,6 +71,7 @@ import TemplatePreviewPage from '../features/themes/TemplatePreviewPage';
 export default function AppRoutes() {
   return (
     <BrowserRouter>
+      <SessionExpiredHandler />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
