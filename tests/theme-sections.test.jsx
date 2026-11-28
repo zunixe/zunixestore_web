@@ -16,7 +16,7 @@ describe('katalog Tambah Bagian', () => {
 
   it('tidak menawarkan seksi yang belum punya kontrak data', () => {
     const offered = SECTION_CATALOG.flatMap((g) => g.items.map((it) => it.id));
-    for (const id of ['instagram', 'hashtags', 'rating']) {
+    for (const id of ['instagram', 'hashtags']) {
       expect(offered).not.toContain(id);
     }
   });
@@ -91,5 +91,16 @@ describe('contentGrid', () => {
     const panels = read('src/features/themes/editor/panels.jsx');
     expect(panels).toContain('ContentGridItemsEditor');
     expect(panels).toContain("case 'contentGrid'");
+  });
+});
+
+describe('rating', () => {
+  it('extras, katalog, meta, dan panel tersedia', () => {
+    const schema = read('src/features/themes/editor/schema.js');
+    expect(schema).toContain('rating: { jumlah: 6 }');
+    expect(schema).toContain("{ id: 'rating', label: 'Rating' }");
+    const panels = read('src/features/themes/editor/panels.jsx');
+    expect(panels).toContain("case 'rating'");
+    expect(panels).toContain('Jumlah Ulasan');
   });
 });

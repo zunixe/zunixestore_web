@@ -688,6 +688,16 @@ function SectionKonten({ id, s, patch, storeId }) {
           </Group>
         </>
       );
+    case 'rating':
+      return (
+        <Group title="Pengaturan">
+          <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+          <Label className="mt-3">Jumlah Ulasan</Label>
+          <Sel value={String(s.jumlah || 6)} onChange={(v) => set('jumlah', Number(v))} options={['3', '4', '6', '8', '9']} />
+          <p className="text-[11px] text-subdued mt-2">Ulasan terbaru dari seluruh produk ditampilkan otomatis. Seksi disembunyikan bila belum ada ulasan.</p>
+          <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+        </Group>
+      );
     case 'waktuTerbatas':
       return (
         <>

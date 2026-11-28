@@ -150,6 +150,7 @@ export const SECTION_META = {
   countdown: { label: 'Banner Hitung Mundur', sub: (s) => s.judul || 'Super Promo' },
   waktuTerbatas: { label: 'Produk waktu terbatas', sub: (s) => s.judul?.text || 'Flash Sale' },
   contentGrid: { label: 'Content Grid', sub: (s) => s.judul?.text || `${(s.items || []).filter((it) => it && it.gambar).length} kartu` },
+  rating: { label: 'Rating', sub: (s) => s.judul?.text || 'Ulasan customer' },
   featured: { label: 'Produk terpilih', sub: (s) => s.judul?.text || 'Best Seller' },
   latest: { label: 'Produk baru', sub: (s) => s.judul?.text || 'Produk Terbaru' },
   bundle: { label: 'Produk bundle', sub: '' },
@@ -183,7 +184,7 @@ export const SECTION_CATALOG = [
   { group: 'NAVIGATION', items: [{ id: 'informasiToko', label: 'Informasi toko' }, { id: 'daftarKategori', label: 'Daftar kategori' }, { id: 'pencarianProduk', label: 'Pencarian produk' }] },
   { group: 'PRODUCTS', items: [{ id: 'semuaProduk', label: 'Semua produk' }, { id: 'produkKategori', label: 'Daftar Produk dari 1 kategori' }, { id: 'featured', label: 'Produk terpilih' }, { id: 'produkUnggulan', label: 'Produk unggulan' }, { id: 'latest', label: 'Produk baru' }, { id: 'bundle', label: 'Produk bundle' }, { id: 'waktuTerbatas', label: 'Produk waktu terbatas' }] },
   { group: 'CONTENT', items: [{ id: 'slideshow', label: 'Gambar sampul (Slideshow)' }, { id: 'countdown', label: 'Banner Hitung Mundur' }, { id: 'kolase', label: 'Gambar Kolase' }, { id: 'paragraf', label: 'Paragraf' }, { id: 'gambarTeks', label: 'Gambar dengan teks' }, { id: 'videoTeks', label: 'Video dengan teks' }, { id: 'daftarLogo', label: 'Daftar logo' }, { id: 'marquee', label: 'Marquee' }, { id: 'contentGrid', label: 'Content Grid' }] },
-  { group: 'INFORMATION', items: [{ id: 'namaToko', label: 'Nama Toko' }, { id: 'blogs', label: 'Blogs' }, { id: 'faq', label: 'FAQ' }] },
+  { group: 'INFORMATION', items: [{ id: 'namaToko', label: 'Nama Toko' }, { id: 'blogs', label: 'Blogs' }, { id: 'rating', label: 'Rating' }, { id: 'faq', label: 'FAQ' }] },
 ];
 
 /* Seksi generik dari katalog (bukan 8 seksi bawaan) → panel konten minimal. */
@@ -195,6 +196,7 @@ export const GENERIC_SECTION = {
 export const SECTION_EXTRAS = {
   waktuTerbatas: { tanggal: '', waktu: '23:59', produkIds: [], jumlah: 8, perBaris: 4, tampilkanSemua: false },
   contentGrid: { items: [], perBaris: 3 },
+  rating: { jumlah: 6 },
 };
 
 const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
