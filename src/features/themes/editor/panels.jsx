@@ -645,6 +645,29 @@ function SectionKonten({ id, s, patch, storeId }) {
           </Group>
         </>
       );
+    case 'waktuTerbatas':
+      return (
+        <>
+          <Group title="Konten">
+            <ProductPicker selected={s.produkIds} onChange={(v) => set('produkIds', v)} storeId={storeId} />
+            <p className="text-[11px] text-subdued mt-1">Bila kosong, seksi memakai produk yang sedang diskon secara otomatis.</p>
+            <Label className="mt-3">Tanggal Berakhir</Label>
+            <input type="date" value={s.tanggal || ''} onChange={(e) => set('tanggal', e.target.value)} className="w-full rounded-md border border-divider px-2.5 py-2 text-sm bg-white focus:outline-none focus:border-primary" />
+            <Label className="mt-3">Waktu Berakhir (WIB)</Label>
+            <input type="time" value={s.waktu || '23:59'} onChange={(e) => set('waktu', e.target.value)} className="w-full rounded-md border border-divider px-2.5 py-2 text-sm bg-white focus:outline-none focus:border-primary" />
+            <p className="text-[11px] text-subdued mt-1">Hitung mundur disembunyikan otomatis setelah waktu berakhir.</p>
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <Label className="mt-3">Jumlah Produk</Label>
+            <Sel value={String(s.jumlah || 8)} onChange={(v) => set('jumlah', Number(v))} options={['4', '6', '8', '10', '12', '16', '20']} />
+            <Label className="mt-3">Produk per baris</Label>
+            <Sel value={String(s.perBaris || 4)} onChange={(v) => set('perBaris', Number(v))} options={['2', '3', '4', '5', '6']} />
+            <div className="mt-3"><CheckRow label="Perlihatkan tombol 'Tampilkan Semua'" checked={!!s.tampilkanSemua} onChange={(v) => set('tampilkanSemua', v)} /></div>
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
     case 'produkKategori':
       return (
         <>

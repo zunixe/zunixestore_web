@@ -16,7 +16,7 @@ describe('katalog Tambah Bagian', () => {
 
   it('tidak menawarkan seksi yang belum punya kontrak data', () => {
     const offered = SECTION_CATALOG.flatMap((g) => g.items.map((it) => it.id));
-    for (const id of ['instagram', 'waktuTerbatas', 'contentGrid', 'hashtags', 'rating']) {
+    for (const id of ['instagram', 'contentGrid', 'hashtags', 'rating']) {
       expect(offered).not.toContain(id);
     }
   });
@@ -59,5 +59,26 @@ describe('floating button', () => {
     expect(panels).toContain("'whatsapp'");
     expect(panels).toContain('Tautan Kustom');
     expect(panels).toContain('Tampilkan juga di perangkat seluler');
+  });
+});
+
+describe('waktuTerbatas (flash sale)', () => {
+  it('katalog menawarkan dan extras menyediakan default', () => {
+    const schema = read('src/features/themes/editor/schema.js');
+    expect(schema).toContain("'waktuTerbatas'");
+    expect(schema).toContain('SECTION_EXTRAS');
+    expect(schema).toContain('Produk waktu terbatas');
+  });
+
+  it('addSection menggabungkan extras', () => {
+    const page = read('src/features/themes/editor/ThemeEditorPage.jsx');
+    expect(page).toContain('SECTION_EXTRAS[id]');
+  });
+
+  it('panel punya picker produk, tanggal, dan waktu', () => {
+    const panels = read('src/features/themes/editor/panels.jsx');
+    expect(panels).toContain("case 'waktuTerbatas'");
+    expect(panels).toContain('Tanggal Berakhir');
+    expect(panels).toContain('Waktu Berakhir (WIB)');
   });
 });

@@ -12,7 +12,7 @@ import { useStoreSetting } from '../../store-design/useStoreSetting';
 import api from '../../../utils/api';
 import {
   PAGE_OPTIONS, PAGE_PATHS, HOME_ITEMS, SECTION_META,
-  GENERIC_SECTION, mergeDraft, draftFromThemeConfig, toStoreSettings,
+  GENERIC_SECTION, SECTION_EXTRAS, mergeDraft, draftFromThemeConfig, toStoreSettings,
 } from './schema';
 import {
   GlobalPanel, PengumumanPanel, HeaderPanel, FloatingPanel, SectionPanel, AddSectionPanel, SECTION_ICONS,
@@ -252,7 +252,7 @@ export default function ThemeEditorPage() {
   const addSection = (id, label) => {
     setHistory((h) => {
       let present = h.present;
-      if (!present.sections[id]) present = setIn(present, `sections.${id}`, { ...GENERIC_SECTION, customLabel: label });
+      if (!present.sections[id]) present = setIn(present, `sections.${id}`, { ...GENERIC_SECTION, ...(SECTION_EXTRAS[id] || {}), customLabel: label });
       if (!present.order.includes(id)) {
         // Seksi baru masuk sebelum Footer.
         const order = [...present.order];
