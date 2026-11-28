@@ -304,6 +304,29 @@ function tampilanOpts(keys) {
   }));
 }
 
+/* Editor daftar gambar URL (dipakai Daftar Logo & Kolase). */
+function ImageListEditor({ value, onChange }) {
+  const images = Array.isArray(value) ? value : [];
+  const setAt = (i, v) => onChange(images.map((x, j) => (j === i ? v : x)));
+  return (
+    <div>
+      <button type="button" onClick={() => onChange([...images, ''])} className="w-full h-9 rounded-md bg-primary-surface text-primary text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer">
+        <Plus className="w-4 h-4" /> Tambahkan Gambar
+      </button>
+      <div className="mt-2 space-y-1.5">
+        {images.map((img, i) => (
+          <div key={i} className="flex items-center gap-2 rounded-lg bg-gray-50 border border-divider p-2">
+            <div className="w-8 h-8 rounded bg-gray-200 overflow-hidden shrink-0">{img && <img src={img} alt="" className="w-full h-full object-cover" />}</div>
+            <Txt value={img} onChange={(v) => setAt(i, v)} placeholder={`Gambar ${i + 1} (URL)`} className="h-8 text-xs" />
+            <ImageField value="" onChange={(v) => setAt(i, v)} buttonLabel="…" />
+            <button type="button" onClick={() => onChange(images.filter((_, j) => j !== i))} className="text-subdued hover:text-danger cursor-pointer" aria-label="Hapus gambar"><Trash2Icon /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionKonten({ id, s, patch, storeId }) {
   const set = (k, v) => patch(`sections.${id}.${k}`, v);
   switch (id) {
@@ -501,6 +524,130 @@ function SectionKonten({ id, s, patch, storeId }) {
             </div>
           </Group>
         </>
+      );
+    case 'paragraf':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>Teks Paragraf</Label>
+            <textarea
+              value={s.teks || ''}
+              onChange={(e) => set('teks', e.target.value)}
+              rows={6}
+              className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+              placeholder="Tulis paragraf pembuka, pengumuman, atau cerita toko…"
+            />
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'marquee':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>Item Marquee</Label>
+            <textarea
+              value={s.items || ''}
+              onChange={(e) => set('items', e.target.value)}
+              rows={4}
+              className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+              placeholder={'Gratis ongkir seluruh Jawa\nGaransi 100% original\nDiskon 10% pembelian pertama'}
+            />
+            <p className="text-[11px] text-subdued mt-1">Satu item per baris; item berjalan berurutan dari kanan ke kiri.</p>
+          </Group>
+          <Group title="Pengaturan"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></Group>
+        </>
+      );
+    case 'gambarTeks':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>Gambar</Label>
+            <ImageField value={s.image || ''} onChange={(v) => set('image', v)} />
+            <Label className="mt-3">Posisi Gambar</Label>
+            <Seg options={['Kiri', 'Kanan']} value={s.posisi || 'Kiri'} onChange={(v) => set('posisi', v)} />
+            <Label className="mt-3">Teks</Label>
+            <textarea
+              value={s.teks || ''}
+              onChange={(e) => set('teks', e.target.value)}
+              rows={5}
+              className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+            />
+            <div className="mt-3"><Label>Teks Tombol (opsional)</Label><Txt value={s.tombolTeks || ''} onChange={(v) => set('tombolTeks', v)} /></div>
+            <div className="mt-2"><Label>Tautan Tombol</Label><Txt value={s.tombolLink || ''} onChange={(v) => set('tombolLink', v)} placeholder="https://…" /></div>
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'videoTeks':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>URL Video</Label>
+            <Txt value={s.videoUrl || ''} onChange={(v) => set('videoUrl', v)} placeholder="https://youtube.com/watch?v=… atau URL file .mp4" />
+            <Label className="mt-3">Posisi Video</Label>
+            <Seg options={['Kiri', 'Kanan']} value={s.posisi || 'Kiri'} onChange={(v) => set('posisi', v)} />
+            <Label className="mt-3">Teks</Label>
+            <textarea
+              value={s.teks || ''}
+              onChange={(e) => set('teks', e.target.value)}
+              rows={5}
+              className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+            />
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'daftarLogo':
+    case 'kolase':
+      return (
+        <>
+          <Group title="Gambar">
+            <ImageListEditor value={s.images} onChange={(v) => set('images', v)} />
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'produkKategori':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>Nama Kategori</Label>
+            <Txt value={s.kategori || ''} onChange={(v) => set('kategori', v)} placeholder="Persis seperti nama kategori produk" />
+            <p className="text-[11px] text-subdued mt-1">Produk dengan kategori ini ditampilkan di seksi. Lihat nama kategori di menu Produk.</p>
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <Label className="mt-3">Jumlah Produk</Label>
+            <Sel value={String(s.jumlah || 10)} onChange={(v) => set('jumlah', Number(v))} options={['4', '6', '8', '10', '12', '16', '20']} />
+            <Label className="mt-3">Produk per baris</Label>
+            <Sel value={String(s.perBaris || 5)} onChange={(v) => set('perBaris', Number(v))} options={['2', '3', '4', '5', '6']} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'semuaProduk':
+      return (
+        <Group title="Pengaturan">
+          <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+          <Label className="mt-3">Jumlah Produk</Label>
+          <Sel value={String(s.jumlah || 10)} onChange={(v) => set('jumlah', Number(v))} options={['4', '6', '8', '10', '12', '16', '20', '24']} />
+          <Label className="mt-3">Produk per baris</Label>
+          <Sel value={String(s.perBaris || 5)} onChange={(v) => set('perBaris', Number(v))} options={['2', '3', '4', '5', '6']} />
+          <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+        </Group>
       );
     default:
       return (

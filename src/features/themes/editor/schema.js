@@ -149,6 +149,19 @@ export const SECTION_META = {
   bundle: { label: 'Produk bundle', sub: '' },
   faq: { label: 'FAQ', sub: (s) => s.judul?.text || 'Tanya Kami' },
   footer: { label: 'Footer', sub: '' },
+  informasiToko: { label: 'Informasi toko', sub: '' },
+  daftarKategori: { label: 'Daftar kategori', sub: '' },
+  pencarianProduk: { label: 'Pencarian produk', sub: '' },
+  semuaProduk: { label: 'Semua produk', sub: (s) => s.judul?.text || '' },
+  produkKategori: { label: 'Daftar Produk dari 1 kategori', sub: (s) => s.kategori || '' },
+  produkUnggulan: { label: 'Produk unggulan', sub: '' },
+  kolase: { label: 'Gambar Kolase', sub: '' },
+  paragraf: { label: 'Paragraf', sub: '' },
+  gambarTeks: { label: 'Gambar dengan teks', sub: '' },
+  videoTeks: { label: 'Video dengan teks', sub: '' },
+  daftarLogo: { label: 'Daftar logo', sub: '' },
+  marquee: { label: 'Marquee', sub: '' },
+  blogs: { label: 'Blogs', sub: '' },
 };
 
 export const HOME_ITEMS = [
@@ -157,12 +170,14 @@ export const HOME_ITEMS = [
   { id: 'floating', label: 'Floating Button' },
 ];
 
-/* Katalog "Tambah Bagian" seperti Plugo. */
+/* Katalog "Tambah Bagian" seperti Plugo. Hanya seksi yang benar-benar dirender
+   template storefront — instagram/waktuTerbatas/contentGrid/hashtags/rating
+   disembunyikan sampai kontrak datanya diimplementasikan. */
 export const SECTION_CATALOG = [
   { group: 'NAVIGATION', items: [{ id: 'informasiToko', label: 'Informasi toko' }, { id: 'daftarKategori', label: 'Daftar kategori' }, { id: 'pencarianProduk', label: 'Pencarian produk' }] },
   { group: 'PRODUCTS', items: [{ id: 'semuaProduk', label: 'Semua produk' }, { id: 'produkKategori', label: 'Daftar Produk dari 1 kategori' }, { id: 'featured', label: 'Produk terpilih' }, { id: 'produkUnggulan', label: 'Produk unggulan' }, { id: 'latest', label: 'Produk baru' }, { id: 'bundle', label: 'Produk bundle' }] },
-  { group: 'CONTENT', items: [{ id: 'slideshow', label: 'Gambar sampul (Slideshow)' }, { id: 'countdown', label: 'Banner Hitung Mundur' }, { id: 'kolase', label: 'Gambar Kolase' }, { id: 'instagram', label: 'Instagram Feed' }, { id: 'waktuTerbatas', label: 'Waktu Terbatas' }, { id: 'paragraf', label: 'Paragraf' }, { id: 'gambarTeks', label: 'Gambar dengan teks' }, { id: 'videoTeks', label: 'Video dengan teks' }, { id: 'daftarLogo', label: 'Daftar logo' }, { id: 'marquee', label: 'Marquee' }, { id: 'contentGrid', label: 'Content Grid' }] },
-  { group: 'INFORMATION', items: [{ id: 'namaToko', label: 'Nama Toko' }, { id: 'hashtags', label: 'Home Hashtags' }, { id: 'rating', label: 'Rating' }, { id: 'blogs', label: 'Blogs' }, { id: 'faq', label: 'FAQ' }] },
+  { group: 'CONTENT', items: [{ id: 'slideshow', label: 'Gambar sampul (Slideshow)' }, { id: 'countdown', label: 'Banner Hitung Mundur' }, { id: 'kolase', label: 'Gambar Kolase' }, { id: 'paragraf', label: 'Paragraf' }, { id: 'gambarTeks', label: 'Gambar dengan teks' }, { id: 'videoTeks', label: 'Video dengan teks' }, { id: 'daftarLogo', label: 'Daftar logo' }, { id: 'marquee', label: 'Marquee' }] },
+  { group: 'INFORMATION', items: [{ id: 'namaToko', label: 'Nama Toko' }, { id: 'blogs', label: 'Blogs' }, { id: 'faq', label: 'FAQ' }] },
 ];
 
 /* Seksi generik dari katalog (bukan 8 seksi bawaan) → panel konten minimal. */
