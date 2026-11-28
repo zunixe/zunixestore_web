@@ -32,13 +32,7 @@ export function GlobalPanel({ draft, patch, onBack }) {
           <Accordion key={name} title={name} open={open === name} onToggle={() => setOpen(open === name ? '' : name)}>
             {name === 'Warna' && (
               <div className="space-y-1">
-                <div className="flex items-center gap-3 rounded-lg border border-divider p-3">
-                  <span className="w-10 h-10 rounded-md" style={{ background: w.brand }} />
-                  <div>
-                    <p className="text-sm font-semibold text-neutral flex items-center gap-1">Warna Brand <span className="text-subdued">ⓘ</span></p>
-                    <p className="text-xs text-subdued">{w.brand}</p>
-                  </div>
-                </div>
+                <ColorRow label="Warna Brand" value={w.brand} onChange={(v) => setW('brand', v)} />
                 <ColorRow label="Warna Latar Belakang" value={w.latar} onChange={(v) => setW('latar', v)} />
                 <div className="pt-2 border-t border-divider/60">
                   <Label hint>Warna Teks</Label>
