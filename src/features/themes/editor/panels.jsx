@@ -204,13 +204,38 @@ export function HeaderPanel({ draft, patch, onBack }) {
 
 export function FloatingPanel({ draft, patch, onBack }) {
   const f = draft.home.floating;
+  const set = (k, v) => patch(`home.floating.${k}`, v);
   return (
     <>
       <PanelHeader title="Floating Button" onBack={onBack} />
-      <div className="flex-1 overflow-y-auto px-4">
-        <ToggleRow label="Kustom" checked={f.kustom} onChange={(v) => patch('home.floating.kustom', v)} />
-        <div className="border-t border-divider" />
-        <ToggleRow label="Diskon" checked={f.diskon} onChange={(v) => patch('home.floating.diskon', v)} />
+      <div className="flex-1 overflow-y-auto px-4 space-y-3 py-3">
+        <ToggleRow label="Tampilkan floating button" checked={f.aktif !== false} onChange={(v) => set('aktif', v)} />
+        {f.aktif !== false && (
+          <>
+            <div>
+              <Label>Tipe Tombol</Label>
+              <Sel
+                value={f.tipe || 'otomatis'}
+                onChange={(v) => set('tipe', v)}
+                options={[
+                  { value: 'otomatis', label: 'Otomatis (WhatsApp / Kontak)' },
+                  { value: 'whatsapp', label: 'WhatsApp' },
+                  { value: 'chat', label: 'Halaman Kontak' },
+                  { value: 'link', label: 'Tautan Kustom' },
+                ]}
+              />
+              {(!f.tipe || f.tipe === 'otomatis') && <p className="text-[11px] text-subdued mt-1">Ke WhatsApp bila nomor diisi di pengaturan toko, kalau tidak ke halaman kontak.</p>}
+              {f.tipe === 'whatsapp' && <p className="text-[11px] text-subdued mt-1">Memakai nomor WhatsApp dari pengaturan toko. Tombol disembunyikan bila nomor kosong.</p>}
+            </div>
+            {f.tipe === 'link' && (
+              <div><Label>Tautan</Label><Txt value={f.link || ''} onChange={(v) => set('link', v)} placeholder="https://…" /></div>
+            )}
+            <div><Label>Teks Label (opsional)</Label><Txt value={f.teks || ''} onChange={(v) => set('teks', v)} placeholder="Chat dengan kami" /></div>
+            <div><Label>Posisi</Label><Seg options={['Kanan', 'Kiri']} value={f.posisi || 'Kanan'} onChange={(v) => set('posisi', v)} /></div>
+            <ColorRow label="Warna Tombol (opsional)" value={f.warna || ''} onChange={(v) => set('warna', v)} />
+            <ToggleRow label="Tampilkan juga di perangkat seluler" checked={!!f.seluler} onChange={(v) => set('seluler', v)} />
+          </>
+        )}
       </div>
     </>
   );

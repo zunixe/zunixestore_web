@@ -43,3 +43,21 @@ describe('katalog Tambah Bagian', () => {
     }
   });
 });
+
+describe('floating button', () => {
+  it('schema punya kontrak lengkap home.floating', () => {
+    const schema = read('src/features/themes/editor/schema.js');
+    for (const k of ['aktif', 'tipe', 'teks', 'link', 'warna', 'posisi', 'seluler']) {
+      expect(schema).toContain(k);
+    }
+  });
+
+  it('panel floating punya kontrol tipe, posisi, warna, dan seluler', () => {
+    const panels = read('src/features/themes/editor/panels.jsx');
+    expect(panels).toContain('Tampilkan floating button');
+    expect(panels).toContain('Tipe Tombol');
+    expect(panels).toContain("'whatsapp'");
+    expect(panels).toContain('Tautan Kustom');
+    expect(panels).toContain('Tampilkan juga di perangkat seluler');
+  });
+});

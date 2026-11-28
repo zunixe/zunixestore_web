@@ -68,7 +68,11 @@ export const DEFAULT_DRAFT = {
       posisiMenu: 'Kanan', latar: '#FFFFFF', transparanDinamis: false,
       menuSamping: true, scroll: 'Geser', hover: 'Garis bawah',
     },
-    floating: { kustom: false, diskon: false },
+    floating: {
+      aktif: true, tipe: 'otomatis', teks: '', link: '', warna: '', posisi: 'Kanan', seluler: false,
+      /* legacy — tidak dipakai lagi, dipertahankan di draft lama lewat merge. */
+      kustom: false, diskon: false,
+    },
   },
   /* Seksi "Bagian" — urutan = urutan render. hidden = disembunyikan. */
   sections: {
