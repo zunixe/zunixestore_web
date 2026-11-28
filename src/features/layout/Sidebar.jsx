@@ -113,7 +113,7 @@ export default function Sidebar() {
   useEffect(() => {
     if (!storeId) return undefined;
     let alive = true;
-    api.get(`/stores/${storeId}/wallet`)
+    api.get(`/stores/${storeId}/settings/wallet`)
       .then((res) => { if (alive) setWallet({ balance: res.data?.balance || 0, coins: res.data?.coins || 0, points: res.data?.points || 0 }); })
       .catch(() => {});
     return () => { alive = false; };

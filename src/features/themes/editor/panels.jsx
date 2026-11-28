@@ -3,9 +3,9 @@ import { Plus, LayoutGrid, Image as ImageIcon, Store, BadgePercent, Star, Sparkl
 import api from '../../../utils/api';
 import {
   PanelHeader, Group, Label, ToggleRow, CheckRow, Seg, Sel, Txt, ColorRow,
-  ImageField, DelSection, TitleStyle, SliderRow, SectionTabs, Accordion, LayoutPicker,
+  ImageField, DelSection, TitleStyle, SliderRow, SectionTabs, Accordion, LayoutPicker, BoxSpacing, RadiusPicker,
 } from './fields';
-import { LAYOUT6, PRODUCT_STYLE, IMG_EFFECT, LEBAR, FONT_OPTS, SCROLL_ANIM, SECTION_CATALOG, SECTION_META } from './schema';
+import { LAYOUT6, PRODUCT_STYLE, IMG_EFFECT, LEBAR, FONT_OPTS, SCROLL_ANIM, SECTION_CATALOG, SECTION_META, DEFAULT_ANIM } from './schema';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
@@ -32,13 +32,7 @@ export function GlobalPanel({ draft, patch, onBack }) {
           <Accordion key={name} title={name} open={open === name} onToggle={() => setOpen(open === name ? '' : name)}>
             {name === 'Warna' && (
               <div className="space-y-1">
-                <div className="flex items-center gap-3 rounded-lg border border-divider p-3">
-                  <span className="w-10 h-10 rounded-md" style={{ background: w.brand }} />
-                  <div>
-                    <p className="text-sm font-semibold text-neutral flex items-center gap-1">Warna Brand <span className="text-subdued">ⓘ</span></p>
-                    <p className="text-xs text-subdued">{w.brand}</p>
-                  </div>
-                </div>
+                <ColorRow label="Warna Brand" value={w.brand} onChange={(v) => setW('brand', v)} />
                 <ColorRow label="Warna Latar Belakang" value={w.latar} onChange={(v) => setW('latar', v)} />
                 <div className="pt-2 border-t border-divider/60">
                   <Label hint>Warna Teks</Label>
@@ -210,13 +204,38 @@ export function HeaderPanel({ draft, patch, onBack }) {
 
 export function FloatingPanel({ draft, patch, onBack }) {
   const f = draft.home.floating;
+  const set = (k, v) => patch(`home.floating.${k}`, v);
   return (
     <>
       <PanelHeader title="Floating Button" onBack={onBack} />
-      <div className="flex-1 overflow-y-auto px-4">
-        <ToggleRow label="Kustom" checked={f.kustom} onChange={(v) => patch('home.floating.kustom', v)} />
-        <div className="border-t border-divider" />
-        <ToggleRow label="Diskon" checked={f.diskon} onChange={(v) => patch('home.floating.diskon', v)} />
+      <div className="flex-1 overflow-y-auto px-4 space-y-3 py-3">
+        <ToggleRow label="Tampilkan floating button" checked={f.aktif !== false} onChange={(v) => set('aktif', v)} />
+        {f.aktif !== false && (
+          <>
+            <div>
+              <Label>Tipe Tombol</Label>
+              <Sel
+                value={f.tipe || 'otomatis'}
+                onChange={(v) => set('tipe', v)}
+                options={[
+                  { value: 'otomatis', label: 'Otomatis (WhatsApp / Kontak)' },
+                  { value: 'whatsapp', label: 'WhatsApp' },
+                  { value: 'chat', label: 'Halaman Kontak' },
+                  { value: 'link', label: 'Tautan Kustom' },
+                ]}
+              />
+              {(!f.tipe || f.tipe === 'otomatis') && <p className="text-[11px] text-subdued mt-1">Ke WhatsApp bila nomor diisi di pengaturan toko, kalau tidak ke halaman kontak.</p>}
+              {f.tipe === 'whatsapp' && <p className="text-[11px] text-subdued mt-1">Memakai nomor WhatsApp dari pengaturan toko. Tombol disembunyikan bila nomor kosong.</p>}
+            </div>
+            {f.tipe === 'link' && (
+              <div><Label>Tautan</Label><Txt value={f.link || ''} onChange={(v) => set('link', v)} placeholder="https://…" /></div>
+            )}
+            <div><Label>Teks Label (opsional)</Label><Txt value={f.teks || ''} onChange={(v) => set('teks', v)} placeholder="Chat dengan kami" /></div>
+            <div><Label>Posisi</Label><Seg options={['Kanan', 'Kiri']} value={f.posisi || 'Kanan'} onChange={(v) => set('posisi', v)} /></div>
+            <ColorRow label="Warna Tombol (opsional)" value={f.warna || ''} onChange={(v) => set('warna', v)} />
+            <ToggleRow label="Tampilkan juga di perangkat seluler" checked={!!f.seluler} onChange={(v) => set('seluler', v)} />
+          </>
+        )}
       </div>
     </>
   );
@@ -224,13 +243,13 @@ export function FloatingPanel({ draft, patch, onBack }) {
 
 /* ---------- Tab Desain bersama untuk semua seksi ---------- */
 
-function DesainTab({ s, patch, path }) {
+function DesainTab({ s, patch, path, defaultAnim = 'Tanpa animasi' }) {
   const d = s.desain || {};
   const set = (k, v) => patch(`${path}.desain.${k}`, v);
   return (
     <div className="px-4 py-4 space-y-3">
       <div><Label>Font</Label><Sel value={d.font || 'Ubuntu'} onChange={(v) => set('font', v)} options={FONT_OPTS} /></div>
-      <div><Label>Animasi saat Scroll</Label><Sel value={d.animasi || 'Tanpa animasi'} onChange={(v) => set('animasi', v)} options={SCROLL_ANIM} /></div>
+      <div><Label>Animasi saat Scroll</Label><Sel value={d.animasi || defaultAnim} onChange={(v) => set('animasi', v)} options={SCROLL_ANIM} /></div>
       <Seg options={['Warna Latar Belakang', 'Gambar Latar Belakang']} value={d.bgMode || 'Warna Latar Belakang'} onChange={(v) => set('bgMode', v)} />
       {d.bgMode === 'Gambar Latar Belakang'
         ? <ImageField value={d.bgImage || ''} onChange={(v) => set('bgImage', v)} />
@@ -244,11 +263,16 @@ function DesainTab({ s, patch, path }) {
   );
 }
 
-function PengaturanTab({ s, patch, path, onDelete }) {
+/* Tab Pengaturan (Plugo): Lebar Konten, Ketajaman Ujung Konten, Jarak, Padding. */
+function PengaturanTab({ s, patch, path }) {
+  const t = s.tata || {};
+  const set = (k, v) => patch(`${path}.tata.${k}`, v);
   return (
-    <div className="px-4 py-4 space-y-3">
-      <CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => patch(`${path}.visible`, v)} />
-      <DelSection onClick={onDelete} />
+    <div className="px-4 py-4 space-y-4">
+      <div><Label>Lebar Konten</Label><Seg options={LEBAR} value={t.lebar || 'Penuh'} onChange={(v) => set('lebar', v)} /></div>
+      <div><Label>Ketajaman Ujung Konten</Label><RadiusPicker value={t.sudut || ''} onChange={(v) => set('sudut', v)} /></div>
+      <div><Label>Jarak</Label><BoxSpacing value={t.margin || { top: 0, bottom: 12 }} onChange={(v) => set('margin', v)} /></div>
+      <div><Label>Padding</Label><BoxSpacing value={t.padding} onChange={(v) => set('padding', v)} /></div>
     </div>
   );
 }
@@ -303,6 +327,58 @@ function tampilanOpts(keys) {
     ...l,
     icon: /Banner/.test(l.value) ? LAYOUT_ICONS.banner : (/Slider|Carousel/.test(l.value) ? LAYOUT_ICONS.slider : LAYOUT_ICONS.grid),
   }));
+}
+
+/* Editor daftar gambar URL (dipakai Daftar Logo & Kolase). */
+function ImageListEditor({ value, onChange }) {
+  const images = Array.isArray(value) ? value : [];
+  const setAt = (i, v) => onChange(images.map((x, j) => (j === i ? v : x)));
+  return (
+    <div>
+      <button type="button" onClick={() => onChange([...images, ''])} className="w-full h-9 rounded-md bg-primary-surface text-primary text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer">
+        <Plus className="w-4 h-4" /> Tambahkan Gambar
+      </button>
+      <div className="mt-2 space-y-1.5">
+        {images.map((img, i) => (
+          <div key={i} className="flex items-center gap-2 rounded-lg bg-gray-50 border border-divider p-2">
+            <div className="w-8 h-8 rounded bg-gray-200 overflow-hidden shrink-0">{img && <img src={img} alt="" className="w-full h-full object-cover" />}</div>
+            <Txt value={img} onChange={(v) => setAt(i, v)} placeholder={`Gambar ${i + 1} (URL)`} className="h-8 text-xs" />
+            <ImageField value="" onChange={(v) => setAt(i, v)} buttonLabel="…" />
+            <button type="button" onClick={() => onChange(images.filter((_, j) => j !== i))} className="text-subdued hover:text-danger cursor-pointer" aria-label="Hapus gambar"><Trash2Icon /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+/* Editor kartu Content Grid: gambar + judul + deskripsi + tautan per kartu. */
+function ContentGridItemsEditor({ value, onChange }) {
+  const items = Array.isArray(value) ? value : [];
+  const setAt = (i, k, v) => onChange(items.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  return (
+    <div>
+      <button type="button" onClick={() => onChange([...items, { gambar: '', judul: '', deskripsi: '', link: '' }])} className="w-full h-9 rounded-md bg-primary-surface text-primary text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer">
+        <Plus className="w-4 h-4" /> Tambahkan Kartu
+      </button>
+      <div className="mt-2 space-y-2">
+        {items.map((it, i) => (
+          <div key={i} className="rounded-lg bg-gray-50 border border-divider p-2.5 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded bg-gray-200 overflow-hidden shrink-0">{it.gambar && <img src={it.gambar} alt="" className="w-full h-full object-cover" />}</div>
+              <Txt value={it.gambar || ''} onChange={(v) => setAt(i, 'gambar', v)} placeholder={`Gambar kartu ${i + 1} (URL)`} className="h-8 text-xs" />
+              <ImageField value="" onChange={(v) => setAt(i, 'gambar', v)} buttonLabel="…" />
+              <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} className="text-subdued hover:text-danger cursor-pointer" aria-label="Hapus kartu"><Trash2Icon /></button>
+            </div>
+            <Txt value={it.judul || ''} onChange={(v) => setAt(i, 'judul', v)} placeholder="Judul kartu (opsional)" className="h-8 text-xs" />
+            <Txt value={it.deskripsi || ''} onChange={(v) => setAt(i, 'deskripsi', v)} placeholder="Deskripsi singkat (opsional)" className="h-8 text-xs" />
+            <Txt value={it.link || ''} onChange={(v) => setAt(i, 'link', v)} placeholder="Tautan, mis. /products?category=Board" className="h-8 text-xs" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function SectionKonten({ id, s, patch, storeId }) {
@@ -363,6 +439,7 @@ function SectionKonten({ id, s, patch, storeId }) {
             <Label className="mt-3">Tinggi</Label>
             <Sel value={s.tinggi} onChange={(v) => set('tinggi', v)} options={['Kecil', 'Sedang', 'Besar']} />
             <ColorRow label="Warna Teks" value={s.warnaTeks} onChange={(v) => set('warnaTeks', v)} />
+            {s.bgMode === 'image' && s.latarKonten === false && <p className="text-[11px] text-danger -mt-1">Warna ini tidak cocok untuk warna latar belakang</p>}
             <Label className="mt-3">Judul</Label>
             <Txt value={s.judul} onChange={(v) => set('judul', v)} />
             <Label className="mt-3">Deskripsi</Label>
@@ -376,17 +453,40 @@ function SectionKonten({ id, s, patch, storeId }) {
               <>
                 <Label className="mt-2">Teks Tombol</Label><Txt value={s.tombolTeks} onChange={(v) => set('tombolTeks', v)} />
                 <Label className="mt-3">Tautan Tombol</Label><Txt value={s.tombolLink} onChange={(v) => set('tombolLink', v)} placeholder="https://www.zunixe.com/products" />
-                <Label className="mt-3">Tipe Tombol</Label><Sel value={s.tombolTipe} onChange={(v) => set('tombolTipe', v)} options={['Outlined', 'Filled', 'Teks']} />
-                <ColorRow label="Warna Tombol" value={s.tombolWarna} onChange={(v) => set('tombolWarna', v)} />
+                <div className="grid grid-cols-2 gap-2 mt-3 items-end">
+                  <Sel value={s.tombolTipe} onChange={(v) => set('tombolTipe', v)} options={['Outlined', 'Filled']} />
+                  <ColorRow label="Warna Tombol" value={s.tombolWarna} onChange={(v) => set('tombolWarna', v)} />
+                </div>
               </>
             )}
             <div className="mt-2"><CheckRow label="Tampilkan Latar Konten" checked={s.latarKonten} onChange={(v) => set('latarKonten', v)} /></div>
             <Label className="mt-3">Posisi Konten</Label>
             <Sel value={s.posisi} onChange={(v) => set('posisi', v)} options={['Kiri', 'Tengah', 'Kanan']} />
           </Group>
-          <Group title="Setting Hitung Mundur Selesai">
+          <Group>
             <Label>Tindakan Hitung Mundur Selesai</Label>
-            <Sel value={s.aksiSelesai} onChange={(v) => set('aksiSelesai', v)} options={['Sembunyikan', 'Tampilkan pesan', 'Tidak ada']} />
+            <Sel value={s.aksiSelesai} onChange={(v) => set('aksiSelesai', v)} options={['Ubah Konten', 'Sembunyikan Bagian', 'Tidak ada']} />
+            {s.aksiSelesai === 'Ubah Konten' && (
+              <>
+                <Label className="mt-3">Judul Selesai</Label>
+                <Txt value={s.judulSelesai} onChange={(v) => set('judulSelesai', v)} placeholder={s.judul} />
+                <Label className="mt-3">Deskripsi Selesai</Label>
+                <textarea
+                  value={s.deskripsiSelesai || ''}
+                  onChange={(e) => set('deskripsiSelesai', e.target.value)}
+                  rows={3}
+                  className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+                />
+                <div className="mt-2"><CheckRow label="Sembunyikan Waktu Hitung Mundur" checked={s.sembunyikanWaktu} onChange={(v) => set('sembunyikanWaktu', v)} /></div>
+                <CheckRow label="Tampilkan tombol saat hitungan mundur selesai" checked={s.tombolSelesaiShow} onChange={(v) => set('tombolSelesaiShow', v)} />
+                {s.tombolSelesaiShow && (
+                  <>
+                    <Label className="mt-2">Teks Tombol</Label><Txt value={s.tombolSelesaiTeks} onChange={(v) => set('tombolSelesaiTeks', v)} />
+                    <Label className="mt-3">Tautan Tombol</Label><Txt value={s.tombolSelesaiLink} onChange={(v) => set('tombolSelesaiLink', v)} placeholder="https://www.zunixe.com/products" />
+                  </>
+                )}
+              </>
+            )}
           </Group>
         </>
       );
@@ -431,8 +531,7 @@ function SectionKonten({ id, s, patch, storeId }) {
               <>
                 <Label className="mt-3">Tampilkan Deskripsi Singkat</Label>
                 <Sel value={s.deskripsi} onChange={(v) => set('deskripsi', v)} options={['Standar', 'Sembunyikan', 'Selalu tampil']} />
-                <Label className="mt-3">Tampilkan Label Produk</Label>
-                <Sel value={s.label} onChange={(v) => set('label', v)} options={['Standar', 'Sembunyikan']} />
+                <div className="mt-3"><CheckRow label="Tampilkan Label Produk" checked={s.label !== false && s.label !== 'Sembunyikan'} onChange={(v) => set('label', v)} /></div>
               </>
             )}
             <div className="mt-3"><CheckRow label="Perlihatkan tombol 'Tampilkan Semua'" checked={s.tampilkanSemua} onChange={(v) => set('tampilkanSemua', v)} /></div>
@@ -480,6 +579,177 @@ function SectionKonten({ id, s, patch, storeId }) {
           </Group>
         </>
       );
+    case 'paragraf':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>Teks Paragraf</Label>
+            <textarea
+              value={s.teks || ''}
+              onChange={(e) => set('teks', e.target.value)}
+              rows={6}
+              className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+              placeholder="Tulis paragraf pembuka, pengumuman, atau cerita toko…"
+            />
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'marquee':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>Item Marquee</Label>
+            <textarea
+              value={s.items || ''}
+              onChange={(e) => set('items', e.target.value)}
+              rows={4}
+              className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+              placeholder={'Gratis ongkir seluruh Jawa\nGaransi 100% original\nDiskon 10% pembelian pertama'}
+            />
+            <p className="text-[11px] text-subdued mt-1">Satu item per baris; item berjalan berurutan dari kanan ke kiri.</p>
+          </Group>
+          <Group title="Pengaturan"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></Group>
+        </>
+      );
+    case 'gambarTeks':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>Gambar</Label>
+            <ImageField value={s.image || ''} onChange={(v) => set('image', v)} />
+            <Label className="mt-3">Posisi Gambar</Label>
+            <Seg options={['Kiri', 'Kanan']} value={s.posisi || 'Kiri'} onChange={(v) => set('posisi', v)} />
+            <Label className="mt-3">Teks</Label>
+            <textarea
+              value={s.teks || ''}
+              onChange={(e) => set('teks', e.target.value)}
+              rows={5}
+              className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+            />
+            <div className="mt-3"><Label>Teks Tombol (opsional)</Label><Txt value={s.tombolTeks || ''} onChange={(v) => set('tombolTeks', v)} /></div>
+            <div className="mt-2"><Label>Tautan Tombol</Label><Txt value={s.tombolLink || ''} onChange={(v) => set('tombolLink', v)} placeholder="https://…" /></div>
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'videoTeks':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>URL Video</Label>
+            <Txt value={s.videoUrl || ''} onChange={(v) => set('videoUrl', v)} placeholder="https://youtube.com/watch?v=… atau URL file .mp4" />
+            <Label className="mt-3">Posisi Video</Label>
+            <Seg options={['Kiri', 'Kanan']} value={s.posisi || 'Kiri'} onChange={(v) => set('posisi', v)} />
+            <Label className="mt-3">Teks</Label>
+            <textarea
+              value={s.teks || ''}
+              onChange={(e) => set('teks', e.target.value)}
+              rows={5}
+              className="w-full rounded-md border border-divider p-2.5 text-sm bg-white focus:outline-none focus:border-primary"
+            />
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'daftarLogo':
+    case 'kolase':
+      return (
+        <>
+          <Group title="Gambar">
+            <ImageListEditor value={s.images} onChange={(v) => set('images', v)} />
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'contentGrid':
+      return (
+        <>
+          <Group title="Kartu">
+            <ContentGridItemsEditor value={s.items} onChange={(v) => set('items', v)} />
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <Label className="mt-3">Kartu per baris</Label>
+            <Sel value={String(s.perBaris || 3)} onChange={(v) => set('perBaris', Number(v))} options={['2', '3', '4']} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'rating':
+      return (
+        <Group title="Pengaturan">
+          <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+          <Label className="mt-3">Jumlah Ulasan</Label>
+          <Sel value={String(s.jumlah || 6)} onChange={(v) => set('jumlah', Number(v))} options={['3', '4', '6', '8', '9']} />
+          <p className="text-[11px] text-subdued mt-2">Ulasan terbaru dari seluruh produk ditampilkan otomatis. Seksi disembunyikan bila belum ada ulasan.</p>
+          <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+        </Group>
+      );
+    case 'waktuTerbatas':
+      return (
+        <>
+          <Group title="Konten">
+            <ProductPicker selected={s.produkIds} onChange={(v) => set('produkIds', v)} storeId={storeId} />
+            <p className="text-[11px] text-subdued mt-1">Bila kosong, seksi memakai produk yang sedang diskon secara otomatis.</p>
+            <Label className="mt-3">Tanggal Berakhir</Label>
+            <input type="date" value={s.tanggal || ''} onChange={(e) => set('tanggal', e.target.value)} className="w-full rounded-md border border-divider px-2.5 py-2 text-sm bg-white focus:outline-none focus:border-primary" />
+            <Label className="mt-3">Waktu Berakhir (WIB)</Label>
+            <input type="time" value={s.waktu || '23:59'} onChange={(e) => set('waktu', e.target.value)} className="w-full rounded-md border border-divider px-2.5 py-2 text-sm bg-white focus:outline-none focus:border-primary" />
+            <p className="text-[11px] text-subdued mt-1">Hitung mundur disembunyikan otomatis setelah waktu berakhir.</p>
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <Label className="mt-3">Jumlah Produk</Label>
+            <Sel value={String(s.jumlah || 8)} onChange={(v) => set('jumlah', Number(v))} options={['4', '6', '8', '10', '12', '16', '20']} />
+            <Label className="mt-3">Produk per baris</Label>
+            <Sel value={String(s.perBaris || 4)} onChange={(v) => set('perBaris', Number(v))} options={['2', '3', '4', '5', '6']} />
+            <div className="mt-3"><CheckRow label="Perlihatkan tombol 'Tampilkan Semua'" checked={!!s.tampilkanSemua} onChange={(v) => set('tampilkanSemua', v)} /></div>
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'produkKategori':
+      return (
+        <>
+          <Group title="Konten">
+            <Label>Nama Kategori</Label>
+            <Txt value={s.kategori || ''} onChange={(v) => set('kategori', v)} placeholder="Persis seperti nama kategori produk" />
+            <p className="text-[11px] text-subdued mt-1">Produk dengan kategori ini ditampilkan di seksi. Lihat nama kategori di menu Produk.</p>
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <Label className="mt-3">Jumlah Produk</Label>
+            <Sel value={String(s.jumlah || 10)} onChange={(v) => set('jumlah', Number(v))} options={['4', '6', '8', '10', '12', '16', '20']} />
+            <Label className="mt-3">Produk per baris</Label>
+            <Sel value={String(s.perBaris || 5)} onChange={(v) => set('perBaris', Number(v))} options={['2', '3', '4', '5', '6']} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'semuaProduk':
+      return (
+        <Group title="Pengaturan">
+          <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+          <Label className="mt-3">Jumlah Produk</Label>
+          <Sel value={String(s.jumlah || 10)} onChange={(v) => set('jumlah', Number(v))} options={['4', '6', '8', '10', '12', '16', '20', '24']} />
+          <Label className="mt-3">Produk per baris</Label>
+          <Sel value={String(s.perBaris || 5)} onChange={(v) => set('perBaris', Number(v))} options={['2', '3', '4', '5', '6']} />
+          <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+        </Group>
+      );
     default:
       return (
         <Group title="Pengaturan">
@@ -506,13 +776,115 @@ export function SectionPanel({ id, draft, patch, storeId, onBack, onDelete }) {
       <SectionTabs tab={tab} onChange={setTab} />
       <div className="flex-1 overflow-y-auto">
         {tab === 'konten' && <SectionKonten id={id} s={s} patch={patch} storeId={storeId} />}
-        {tab === 'desain' && <DesainTab s={s} patch={patch} path={`sections.${id}`} />}
-        {tab === 'pengaturan' && <PengaturanTab s={s} patch={patch} path={`sections.${id}`} onDelete={onDelete} />}
+        {tab === 'desain' && <DesainTab s={s} patch={patch} path={`sections.${id}`} defaultAnim={DEFAULT_ANIM[id]} />}
+        {tab === 'pengaturan' && <PengaturanTab s={s} patch={patch} path={`sections.${id}`} />}
+        {id !== 'footer' && <DelSection onClick={onDelete} />}
       </div>
-      {tab === 'konten' && <DelSection onClick={onDelete} />}
     </>
   );
 }
+
+/* ---------- Pengaturan halaman selain Home (pemilih halaman) ---------- */
+
+const PageTitle = ({ children }) => <h4 className="text-sm font-bold text-neutral pt-3 pb-2">{children}</h4>;
+const Wire = ({ kind }) => {
+  if (kind === 'vertical') return <div className="absolute inset-2 flex gap-1"><div className="w-3 flex flex-col gap-1">{[0, 1, 2].map((i) => <div key={i} className="flex-1 bg-gray-400/60 rounded-sm" />)}</div><div className="flex-1 bg-gray-400/60 rounded-sm" /></div>;
+  if (kind === 'collage') return <div className="absolute inset-2 grid grid-cols-3 gap-1">{[0, 1, 2, 3, 4].map((i) => <div key={i} className={cx('bg-gray-400/60 rounded-sm', i < 2 && 'col-span-1')} />)}</div>;
+  if (kind === 'list') return <div className="absolute inset-2 flex flex-col gap-1 justify-center">{[0, 1, 2].map((i) => <div key={i} className="h-2 bg-gray-400/60 rounded-sm" />)}</div>;
+  return <div className="absolute inset-2 flex flex-col gap-1"><div className="flex-1 bg-gray-400/60 rounded-sm" /><div className="flex gap-1">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="flex-1 h-2 bg-gray-400/60 rounded-sm" />)}</div></div>;
+};
+
+export function KatalogPagePanel({ draft, patch }) {
+  const k = draft.pages?.katalog || {};
+  const set = (key, v) => patch(`pages.katalog.${key}`, v);
+  return (
+    <div className="space-y-1 pb-4">
+      <PageTitle>Tampilan Kategori</PageTitle>
+      <CheckRow label="Tampilkan di navigasi atas" checked={k.kategoriNavAtas} onChange={(v) => set('kategoriNavAtas', v)} />
+      <p className="text-[11px] text-subdued -mt-1 pl-6">Tampilkan daftar kategori di atas judul kategori</p>
+      <div className="pt-2"><Label>Judul kategori</Label><Sel value={k.judulKategori} onChange={(v) => set('judulKategori', v)} options={['Kecil', 'Sedang', 'Besar']} /></div>
+      <ColorRow label="Warna judul kategori" value={k.warnaJudulKategori} onChange={(v) => set('warnaJudulKategori', v)} />
+      <div><Label>Posisi</Label><Sel value={k.posisiGambar} onChange={(v) => set('posisiGambar', v)} options={['Di Dalam', 'Di Luar']} /></div>
+      <div className="pt-2"><Label>Menu</Label><Seg options={['Standar', 'Kustom', 'Multi-select']} value={k.menu} onChange={(v) => set('menu', v)} /></div>
+      <button type="button" className="w-full h-10 mt-2 rounded-md bg-primary-surface text-primary text-sm font-medium cursor-pointer">Tambah item menu</button>
+      <div className="border-t border-divider mt-4" />
+      <PageTitle>Urutkan dan filter</PageTitle>
+      <div className="flex border-b border-divider">
+        {['Side', 'Top', 'Modal'].map((f) => (
+          <button key={f} type="button" onClick={() => set('filter', f)} className={cx('flex-1 h-9 text-sm border-b-2 -mb-px cursor-pointer', k.filter === f ? 'border-primary text-primary' : 'border-transparent text-subdued')}>{f}</button>
+        ))}
+      </div>
+      <CheckRow label="Izinkan pembeli mengatur rentang harga" checked={k.rentangHarga} onChange={(v) => set('rentangHarga', v)} />
+      <div className="border-t border-divider mt-3" />
+      <PageTitle>Efek Produk</PageTitle>
+      <Seg options={IMG_EFFECT} value={k.efek} onChange={(v) => set('efek', v)} />
+      <div className="border-t border-divider mt-4" />
+      <PageTitle>Produk Unggulan</PageTitle>
+      <CheckRow label="Tampilkan Status Produk" checked={k.statusProduk} onChange={(v) => set('statusProduk', v)} />
+      <CheckRow label="Perlihatkan label diskon pengiriman" checked={k.labelOngkir} onChange={(v) => set('labelOngkir', v)} />
+      <CheckRow label="Beri jarak kiri dan kanan lebih di desktop" checked={k.jarakDesktop} onChange={(v) => set('jarakDesktop', v)} />
+      <CheckRow label="Tampilkan Kategori yang Dipromosikan di Katalog" checked={k.kategoriPromo} onChange={(v) => set('kategoriPromo', v)} />
+    </div>
+  );
+}
+
+export function DetailPagePanel({ draft, patch }) {
+  const d = draft.pages?.detail || {};
+  const set = (key, v) => patch(`pages.detail.${key}`, v);
+  const hidden = d.sembunyi || [];
+  const toggle = (name) => set('sembunyi', hidden.includes(name) ? hidden.filter((x) => x !== name) : [...hidden, name]);
+  const Block = ({ name }) => (
+    <div className={cx('group flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5 text-sm text-neutral', hidden.includes(name) && 'opacity-50')}>
+      <span className="flex items-center gap-2"><GripIcon />{name}</span>
+      <button type="button" onClick={() => toggle(name)} className="text-xs text-subdued hover:text-neutral opacity-0 group-hover:opacity-100 cursor-pointer">{hidden.includes(name) ? 'Tampilkan' : 'Sembunyikan'}</button>
+    </div>
+  );
+  return (
+    <div className="space-y-1 pb-4">
+      <PageTitle>Tampilan Gambar</PageTitle>
+      <LayoutPicker
+        options={[{ value: 'Default', label: 'Default', icon: <Wire /> }, { value: 'Vertical', label: 'Vertical', icon: <Wire kind="vertical" /> }, { value: 'Collage', label: 'Collage', icon: <Wire kind="collage" /> }]}
+        value={d.gambar}
+        onChange={(v) => set('gambar', v)}
+      />
+      <div className="pt-2"><Label>Rasio Aspek Miniatur</Label><Sel value={d.rasio} onChange={(v) => set('rasio', v)} options={['1:1', '4:5', '3:4']} /></div>
+      <CheckRow label="Beri efek perbesar pada foto produk" checked={d.zoom} onChange={(v) => set('zoom', v)} />
+      <div className="border-t border-divider mt-3" />
+      <PageTitle>Tampilan varian</PageTitle>
+      <LayoutPicker options={[{ value: 'List', label: 'List', icon: <Wire kind="list" /> }, { value: 'Selection', label: 'Selection', icon: <Wire kind="list" /> }]} value={d.varian} onChange={(v) => set('varian', v)} />
+      <PageTitle>Konten Produk</PageTitle>
+      <Seg options={['Standar', 'Tab Produk']} value={d.konten} onChange={(v) => set('konten', v)} />
+      <PageTitle>Bagian Atas</PageTitle>
+      <div className="space-y-1.5">{(d.atas || []).map((n) => <Block key={n} name={n} />)}</div>
+      <PageTitle>Bagian Bawah</PageTitle>
+      <div className="space-y-1.5">{(d.bawah || []).map((n) => <Block key={n} name={n} />)}</div>
+    </div>
+  );
+}
+
+export function KeranjangPagePanel({ draft, patch }) {
+  const k = draft.pages?.keranjang || {};
+  return (
+    <div className="space-y-1 pb-4">
+      <PageTitle>Keranjang</PageTitle>
+      <CheckRow label="Tampilkan notifikasi saat produk ditambahkan" checked={k.notifikasi} onChange={(v) => patch('pages.keranjang.notifikasi', v)} />
+      <CheckRow label="Tampilkan rekomendasi produk" checked={k.rekomendasi} onChange={(v) => patch('pages.keranjang.rekomendasi', v)} />
+    </div>
+  );
+}
+
+export function EmptyPagePanel({ page }) {
+  return (
+    <div className="py-10 px-4 text-center">
+      <p className="text-sm font-semibold text-neutral">{page}</p>
+      <p className="mt-1 text-xs text-subdued">Halaman ini mengikuti pengaturan di Desain Website (warna, font, tombol).</p>
+    </div>
+  );
+}
+
+const GripIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-subdued" aria-hidden="true"><circle cx="9" cy="6" r="1.5" /><circle cx="15" cy="6" r="1.5" /><circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" /><circle cx="9" cy="18" r="1.5" /><circle cx="15" cy="18" r="1.5" /></svg>
+);
 
 /* Katalog Tambah Bagian. */
 export function AddSectionPanel({ onBack, onAdd, existing }) {

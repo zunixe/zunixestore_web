@@ -29,8 +29,9 @@ export function storefrontUrl(store) {
 export function previewUrl(store, theme) {
   const base = storefrontUrl(store);
   if (!base || !theme?.template) return '';
-  const q = `?template=${encodeURIComponent(theme.template)}`;
-  return store?.slug ? `${base}/${q}&store=${encodeURIComponent(store.slug)}` : `${base}/${q}`;
+  const q = new URLSearchParams({ template: theme.template, _zxv: String(Date.now()) });
+  if (store?.slug) q.set('store', store.slug);
+  return `${base}/?${q.toString()}`;
 }
 
 const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];

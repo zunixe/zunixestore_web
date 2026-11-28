@@ -96,6 +96,19 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
+      .addCase(fetchMe.fulfilled, (state, action) => {
+        state.user = action.payload;
+      })
+      .addCase(updateProfile.pending, (state) => { state.isLoading = true; })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // addMatcher wajib setelah semua addCase (RTK melempar error di mode dev).
       .addMatcher(isAnyOf(loginWithGoogle.pending, loginWithFacebook.pending), (state) => {
         state.isLoading = true; state.error = null;
       })
@@ -106,18 +119,6 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
       })
       .addMatcher(isAnyOf(loginWithGoogle.rejected, loginWithFacebook.rejected), (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-      .addCase(fetchMe.fulfilled, (state, action) => {
-        state.user = action.payload;
-      })
-      .addCase(updateProfile.pending, (state) => { state.isLoading = true; })
-      .addCase(updateProfile.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload;
-      })
-      .addCase(updateProfile.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });

@@ -65,6 +65,7 @@ export default function Topbar() {
   }, []);
 
   const handleLogout = () => {
+    api.post('/auth/logout', {}).catch(() => {});
     dispatch(logout());
     navigate('/login');
   };

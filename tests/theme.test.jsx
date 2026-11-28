@@ -24,6 +24,22 @@ describe('themeUtils', () => {
     expect(u).toContain('template=basic-shop');
     expect(u).toContain('store=demo');
   });
+  it('previewUrl: menyertakan cache-bust agar iframe tidak memakai HTML lama', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+      const a = previewUrl({ slug: 'demo' }, { template: 'default' });
+      vi.setSystemTime(new Date('2026-01-01T00:00:01Z'));
+      const b = previewUrl({ slug: 'demo' }, { template: 'default' });
+      const ca = new URL(a).searchParams.get('_zxv');
+      const cb = new URL(b).searchParams.get('_zxv');
+      expect(ca).toBeTruthy();
+      expect(cb).toBeTruthy();
+      expect(ca).not.toBe(cb);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('formatWaktu: output format "Mon D HH:MM"', () => {
     expect(formatWaktu('2026-11-14T10:05:00Z')).toMatch(/\d{2}:\d{2}/);
     expect(formatWaktu(null)).toBe('-');
