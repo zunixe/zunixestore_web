@@ -352,6 +352,35 @@ function ImageListEditor({ value, onChange }) {
   );
 }
 
+
+/* Editor kartu Content Grid: gambar + judul + deskripsi + tautan per kartu. */
+function ContentGridItemsEditor({ value, onChange }) {
+  const items = Array.isArray(value) ? value : [];
+  const setAt = (i, k, v) => onChange(items.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  return (
+    <div>
+      <button type="button" onClick={() => onChange([...items, { gambar: '', judul: '', deskripsi: '', link: '' }])} className="w-full h-9 rounded-md bg-primary-surface text-primary text-sm font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer">
+        <Plus className="w-4 h-4" /> Tambahkan Kartu
+      </button>
+      <div className="mt-2 space-y-2">
+        {items.map((it, i) => (
+          <div key={i} className="rounded-lg bg-gray-50 border border-divider p-2.5 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded bg-gray-200 overflow-hidden shrink-0">{it.gambar && <img src={it.gambar} alt="" className="w-full h-full object-cover" />}</div>
+              <Txt value={it.gambar || ''} onChange={(v) => setAt(i, 'gambar', v)} placeholder={`Gambar kartu ${i + 1} (URL)`} className="h-8 text-xs" />
+              <ImageField value="" onChange={(v) => setAt(i, 'gambar', v)} buttonLabel="…" />
+              <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} className="text-subdued hover:text-danger cursor-pointer" aria-label="Hapus kartu"><Trash2Icon /></button>
+            </div>
+            <Txt value={it.judul || ''} onChange={(v) => setAt(i, 'judul', v)} placeholder="Judul kartu (opsional)" className="h-8 text-xs" />
+            <Txt value={it.deskripsi || ''} onChange={(v) => setAt(i, 'deskripsi', v)} placeholder="Deskripsi singkat (opsional)" className="h-8 text-xs" />
+            <Txt value={it.link || ''} onChange={(v) => setAt(i, 'link', v)} placeholder="Tautan, mis. /products?category=Board" className="h-8 text-xs" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionKonten({ id, s, patch, storeId }) {
   const set = (k, v) => patch(`sections.${id}.${k}`, v);
   switch (id) {
@@ -641,6 +670,20 @@ function SectionKonten({ id, s, patch, storeId }) {
           </Group>
           <Group title="Pengaturan">
             <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
+          </Group>
+        </>
+      );
+    case 'contentGrid':
+      return (
+        <>
+          <Group title="Kartu">
+            <ContentGridItemsEditor value={s.items} onChange={(v) => set('items', v)} />
+          </Group>
+          <Group title="Pengaturan">
+            <TitleStyle value={s.judul} onChange={(v) => set('judul', v)} />
+            <Label className="mt-3">Kartu per baris</Label>
+            <Sel value={String(s.perBaris || 3)} onChange={(v) => set('perBaris', Number(v))} options={['2', '3', '4']} />
             <div className="mt-3"><CheckRow label="Perlihatkan ke customer" checked={s.visible !== false} onChange={(v) => set('visible', v)} /></div>
           </Group>
         </>

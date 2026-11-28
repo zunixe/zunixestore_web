@@ -16,7 +16,7 @@ describe('katalog Tambah Bagian', () => {
 
   it('tidak menawarkan seksi yang belum punya kontrak data', () => {
     const offered = SECTION_CATALOG.flatMap((g) => g.items.map((it) => it.id));
-    for (const id of ['instagram', 'contentGrid', 'hashtags', 'rating']) {
+    for (const id of ['instagram', 'hashtags', 'rating']) {
       expect(offered).not.toContain(id);
     }
   });
@@ -80,5 +80,16 @@ describe('waktuTerbatas (flash sale)', () => {
     expect(panels).toContain("case 'waktuTerbatas'");
     expect(panels).toContain('Tanggal Berakhir');
     expect(panels).toContain('Waktu Berakhir (WIB)');
+  });
+});
+
+describe('contentGrid', () => {
+  it('extras, katalog, meta, dan panel tersedia', () => {
+    const schema = read('src/features/themes/editor/schema.js');
+    expect(schema).toContain('contentGrid: { items: [], perBaris: 3 }');
+    expect(schema).toContain("{ id: 'contentGrid', label: 'Content Grid' }");
+    const panels = read('src/features/themes/editor/panels.jsx');
+    expect(panels).toContain('ContentGridItemsEditor');
+    expect(panels).toContain("case 'contentGrid'");
   });
 });
